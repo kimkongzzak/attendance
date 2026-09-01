@@ -224,8 +224,10 @@ async function fetchMealMenu(dateStr) {
 
     if (resultData.length === 0) {
       container.innerHTML = `
-        <div class="py-2 text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1.5">
-          <span>🍽️ 등록된 식단 정보가 없습니다.</span>
+        <div class="mt-2 aspect-[4/3] w-full rounded-2xl bg-slate-100 dark:bg-slate-800/60 border border-dashed border-slate-300 dark:border-slate-700/60 flex flex-col items-center justify-center text-center p-4 transition-colors">
+          <span class="text-3xl mb-2 opacity-80 animate-bounce">🍽️</span>
+          <span class="text-xs font-bold text-slate-600 dark:text-slate-300">등록된 식단 정보가 없습니다</span>
+          <span class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">해당 일자의 메뉴 정보가 입력되지 않았습니다</span>
         </div>
       `;
       return;
