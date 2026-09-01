@@ -76,92 +76,211 @@ let selectedEmpFilter = null; // Filter detailed table by cardId
 let searchQuery = '';
 let currentTheme = 'light';
 
-// Top Photo Custom Upload & Storage (5MB Limit Validation)
+// Top Unlimited Photo Carousel State & Logic
 const MAX_PHOTO_SIZE_MB = 5;
-const DEFAULT_TOP_PHOTOS = [
+const DEFAULT_CAROUSEL_PHOTOS = [
   '/images/dog1.jpg',
   '/images/dog2.png',
   '/images/dog3.jpg',
   '/images/dog4.jpg'
 ];
 
-function loadCustomTopPhotos() {
-  for (let i = 0; i < 4; i++) {
-    const saved = localStorage.getItem(`custom_photo_${i}`);
-    const imgEl = document.getElementById(`topPhotoImg${i}`);
-    if (imgEl) {
-      if (saved) {
-        imgEl.src = saved;
-      } else {
-        imgEl.src = DEFAULT_TOP_PHOTOS[i];
-      }
+let carouselPhotos = [];
+let currentCarouselPage = 0;
+
+function loadCarouselPhotos() {
+  const saved = localStorage.getItem('user_carousel_photos');
+  if (saved) {
+    try {
+      carouselPhotos = JSON.parse(saved);
+    } catch (e) {
+      carouselPhotos = [...DEFAULT_CAROUSEL_PHOTOS];
+    }
+  } else {
+    carouselPhotos = [...DEFAULT_CAROUSEL_PHOTOS];
+  }
+  renderCarousel();
+}
+
+function saveCarouselPhotos() {
+  try {
+    localStorage.setItem('user_carousel_photos', JSON.stringify(carouselPhotos));
+  } catch (err) {
+    console.error('localStorage quota error:', err);
+    alert('브라우저 저장 공간이 부족하여 일부 입력을 보관하지 못했습니다.');
+  }
+  renderCarousel();
+}
+
+function renderCarousel() {
+  const track = document.getElementById('carouselTrack');
+  const countBadge = document.getElementById('carouselCountBadge');
+  const dotsContainer = document.getElementById('carouselDots');
+  const btnPrev = document.getElementById('btnPrevCarousel');
+  const btnNext = document.getElementById('btnNextCarousel');
+
+  if (!track) return;
+
+  if (countBadge) countBadge.textContent = `${carouselPhotos.length}장`;
+
+  const isMobile = window.innerWidth < 640;
+  const pageSize = isMobile ? 2 : 4;
+  const totalPages = Math.ceil(carouselPhotos.length / pageSize) || 1;
+
+  if (currentCarouselPage >= totalPages) {
+    currentCarouselPage = totalPages - 1;
+  }
+  if (currentCarouselPage < 0) currentCarouselPage = 0;
+
+  const startIndex = currentCarouselPage * pageSize;
+  const pagePhotos = carouselPhotos.slice(startIndex, startIndex + pageSize);
+
+  track.innerHTML = pagePhotos.map((photoUrl, relativeIdx) => {
+    const actualIdx = startIndex + relativeIdx;
+    return `
+      <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md">
+        <img src="${photoUrl}" alt="사진 ${actualIdx + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+        
+        <button onclick="deleteCarouselPhoto(${actualIdx})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
+          <i class="fa-solid fa-trash-can text-xs"></i>
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  // Nav Buttons & Dots Visibility
+  if (totalPages > 1) {
+    if (btnPrev) {
+      btnPrev.classList.remove('hidden');
+      btnPrev.onclick = () => setCarouselPage(currentCarouselPage - 1);
+    }
+    if (btnNext) {
+      btnNext.classList.remove('hidden');
+      btnNext.onclick = () => setCarouselPage(currentCarouselPage + 1);
+    }
+
+    if (dotsContainer) {
+      dotsContainer.classList.remove('hidden');
+      dotsContainer.classList.add('flex');
+      dotsContainer.innerHTML = Array.from({ length: totalPages }).map((_, i) => `
+        <button onclick="setCarouselPage(${i})" class="h-2.5 rounded-full transition-all duration-200 ${
+          i === currentCarouselPage 
+            ? 'bg-amber-500 w-6' 
+            : 'bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 w-2.5'
+        }"></button>
+      `).join('');
+    }
+  } else {
+    if (btnPrev) btnPrev.classList.add('hidden');
+    if (btnNext) btnNext.classList.add('hidden');
+    if (dotsContainer) {
+      dotsContainer.classList.add('hidden');
+      dotsContainer.classList.remove('flex');
     }
   }
 }
 
-window.handlePhotoUpload = function(event, index) {
-  const file = event.target.files[0];
-  if (!file) return;
+window.setCarouselPage = function(page) {
+  const isMobile = window.innerWidth < 640;
+  const pageSize = isMobile ? 2 : 4;
+  const totalPages = Math.ceil(carouselPhotos.length / pageSize) || 1;
 
-  // File size validation (5MB max)
+  if (page < 0) page = totalPages - 1;
+  if (page >= totalPages) page = 0;
+
+  currentCarouselPage = page;
+  renderCarousel();
+};
+
+window.deleteCarouselPhoto = function(index) {
+  if (carouselPhotos.length <= 1) {
+    alert('최소 1장의 사진은 갤러리에 남아있어야 합니다.');
+    return;
+  }
+  if (confirm(`'사진 ${index + 1}'을(를) 갤러리에서 삭제하시겠습니까?`)) {
+    carouselPhotos.splice(index, 1);
+    saveCarouselPhotos();
+  }
+};
+
+window.resetCarouselPhotos = function() {
+  if (confirm('포토 갤러리를 초기 4장으로 복원하시겠습니까?')) {
+    carouselPhotos = [...DEFAULT_CAROUSEL_PHOTOS];
+    currentCarouselPage = 0;
+    saveCarouselPhotos();
+  }
+};
+
+window.handleCarouselUpload = function(event) {
+  const files = Array.from(event.target.files);
+  if (files.length === 0) return;
+
   const maxSizeBytes = MAX_PHOTO_SIZE_MB * 1024 * 1024;
-  if (file.size > maxSizeBytes) {
-    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-    alert(`⚠️ 파일 용량이 너무 큽니다!\n\n- 선택한 파일 용량: ${fileSizeMB} MB\n- 최대 허용 용량: ${MAX_PHOTO_SIZE_MB} MB 이하\n\n5MB 이하의 사진 파일만 등록할 수 있습니다.`);
+  const oversized = files.filter(f => f.size > maxSizeBytes);
+
+  if (oversized.length > 0) {
+    alert(`⚠️ 5MB를 초과하는 파일이 ${oversized.length}건 있습니다!\n\n5MB 이하의 사진 파일만 갤러리에 추가할 수 있습니다.`);
+  }
+
+  const validFiles = files.filter(f => f.size <= maxSizeBytes);
+  if (validFiles.length === 0) {
     event.target.value = '';
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const rawDataUrl = e.target.result;
+  let processedCount = 0;
+  validFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const rawDataUrl = e.target.result;
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const maxDim = 800;
+        let width = img.width;
+        let height = img.height;
 
-    // Compress photo via HTML5 Canvas for optimal localStorage & instant loading
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      const maxDim = 800; // Optimal resolution
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height) {
-        if (width > maxDim) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
         }
-      } else {
-        if (height > maxDim) {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        carouselPhotos.push(compressedDataUrl);
+
+        processedCount++;
+        if (processedCount === validFiles.length) {
+          const isMobile = window.innerWidth < 640;
+          const pageSize = isMobile ? 2 : 4;
+          currentCarouselPage = Math.ceil(carouselPhotos.length / pageSize) - 1;
+          saveCarouselPhotos();
         }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-
-      try {
-        localStorage.setItem(`custom_photo_${index}`, compressedDataUrl);
-        const imgEl = document.getElementById(`topPhotoImg${index}`);
-        if (imgEl) imgEl.src = compressedDataUrl;
-      } catch (err) {
-        console.error('localStorage quota error:', err);
-        alert('브라우저 저장 공간이 부족합니다.');
-      }
+      };
+      img.src = rawDataUrl;
     };
-    img.src = rawDataUrl;
-  };
-  reader.readAsDataURL(file);
+    reader.readAsDataURL(file);
+  });
+
+  event.target.value = '';
 };
 
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   checkAuthState();
-  loadCustomTopPhotos();
+  loadCarouselPhotos();
   loadTrackedEmployees();
   initDateState();
   fetchYearHolidays(calendarViewDate.getFullYear());
@@ -169,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   fetchAttendance(selectedDate);
   fetchMealMenu(selectedDate);
+  window.addEventListener('resize', renderCarousel);
 });
 
 // Check Admin Auth State & Expiration
