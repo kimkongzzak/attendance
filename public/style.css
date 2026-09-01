@@ -263,3 +263,11 @@ html.light .auth-lock-overlay {
   animation: errorRedFlash 2.8s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1.5px solid #ef4444 !important;
 }
+
+/* Strict Mobile Single-Line No-Wrap Enforcement for Tables & Lists */
+table th,
+table td,
+.theme-table-row td,
+#trackedEmployeesList * {
+  white-space: nowrap !important;
+}

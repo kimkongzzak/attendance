@@ -934,9 +934,9 @@ function renderEmpSummaryDBTable() {
     return `
       <tr onclick="toggleEmpFilter('${emp.cardId}')" 
         class="theme-table-row cursor-pointer ${isSelected ? 'summary-row-selected font-semibold' : ''}">
-        <td class="py-3 px-4 text-center font-mono text-slate-400 text-xs">${index + 1}</td>
-        <td class="py-3 px-4">
-          <span class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">${emp.empName}</span>
+        <td class="py-3 px-4 text-center font-mono text-slate-400 text-xs whitespace-nowrap">${index + 1}</td>
+        <td class="py-3 px-4 whitespace-nowrap">
+          <span class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm whitespace-nowrap">${emp.empName}</span>
         </td>
         <td class="py-3 px-4 font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">${emp.empNo}</td>
         <td class="py-3 px-4 font-mono whitespace-nowrap">
@@ -1036,13 +1036,13 @@ function renderDetailedTable() {
   tbody.innerHTML = logs.map((log, index) => {
     return `
       <tr class="theme-table-row">
-        <td class="py-4 px-5 text-center font-mono text-slate-400 text-xs font-semibold">${index + 1}</td>
-        <td class="py-4 px-5">
-          <span class="font-bold text-base text-slate-900 dark:text-white">${log.empName}</span>
+        <td class="py-4 px-5 text-center font-mono text-slate-400 text-xs font-semibold whitespace-nowrap">${index + 1}</td>
+        <td class="py-4 px-5 whitespace-nowrap">
+          <span class="font-bold text-base text-slate-900 dark:text-white whitespace-nowrap">${log.empName}</span>
         </td>
-        <td class="py-4 px-5 font-mono text-slate-500 dark:text-slate-400 text-xs">${log.empNo}</td>
-        <td class="py-4 px-5 font-mono">
-          <span class="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 text-xs font-bold">
+        <td class="py-4 px-5 font-mono text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">${log.empNo}</td>
+        <td class="py-4 px-5 font-mono whitespace-nowrap">
+          <span class="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 text-xs font-bold whitespace-nowrap">
             ${log.cardId}
           </span>
         </td>
