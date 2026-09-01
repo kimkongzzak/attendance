@@ -176,7 +176,7 @@ async function fetchYearHolidays(year) {
   }
 }
 
-// Fetch Daily Meal Menu from Proxy API (ALWAYS UNBLURRED & VISIBLE)
+// Fetch Daily Meal Menu from Proxy API (Beautiful 4:3 Aspect Ratio Placeholder when No Image)
 async function fetchMealMenu(dateStr) {
   const container = document.getElementById('mealMenuContainer');
   const dateText = document.getElementById('mealDateText');
@@ -195,6 +195,14 @@ async function fetchMealMenu(dateStr) {
     const data = await res.json();
 
     const resultData = (data && data.data && Array.isArray(data.data.resultData)) ? data.data.resultData : [];
+
+    const noImagePlaceholder = `
+      <div class="mt-2 aspect-[4/3] w-full rounded-2xl bg-slate-100 dark:bg-slate-800/60 border border-dashed border-slate-300 dark:border-slate-700/60 flex flex-col items-center justify-center text-center p-4 transition-colors">
+        <span class="text-3xl mb-2 opacity-80 animate-bounce">🍽️</span>
+        <span class="text-xs font-bold text-slate-600 dark:text-slate-300">이미지가 등록되지 않았습니다</span>
+        <span class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">식단 텍스트 메뉴를 참고해주세요</span>
+      </div>
+    `;
 
     if (resultData.length === 0) {
       container.innerHTML = `
@@ -215,11 +223,7 @@ async function fetchMealMenu(dateStr) {
       const typeBadge = typeNames[meal.type] || meal.type || '식단';
       const contentText = meal.content || '식단 내용이 없습니다.';
 
-      let imageMarkup = `
-        <div class="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-          <span>🍽️ 이미지가 등록되지 않았습니다</span>
-        </div>
-      `;
+      let imageMarkup = noImagePlaceholder;
 
       if (meal.imgList && Array.isArray(meal.imgList) && meal.imgList.length > 0) {
         const firstImg = meal.imgList[0];
@@ -232,15 +236,15 @@ async function fetchMealMenu(dateStr) {
           preloader.src = directImgUrl;
 
           imageMarkup = `
-            <div class="mt-2 group relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/60 shadow-sm bg-slate-100 dark:bg-slate-800 min-h-[160px]">
+            <div class="mt-2 group relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700/60 shadow-sm bg-slate-100 dark:bg-slate-800 aspect-[4/3] w-full">
               <a href="${directImgUrl}" target="_blank" rel="noopener noreferrer" class="block relative w-full h-full">
                 <img src="${directImgUrl}" 
                      referrerpolicy="no-referrer" 
                      loading="eager"
                      decoding="async"
                      alt="식단 이미지" 
-                     class="w-full h-44 object-cover transition-all duration-200 group-hover:scale-105" 
-                     onerror="if (!this.dataset.triedProxy) { this.dataset.triedProxy='1'; this.src='${proxyImgUrl}'; } else { this.parentElement.parentElement.innerHTML='<div class=\'py-1 text-xs text-slate-500\'>🍽️ 이미지가 등록되지 않았습니다</div>'; }">
+                     class="w-full h-full object-cover transition-all duration-200 group-hover:scale-105" 
+                     onerror="if (!this.dataset.triedProxy) { this.dataset.triedProxy='1'; this.src='${proxyImgUrl}'; } else { this.parentElement.parentElement.outerHTML=\`${noImagePlaceholder.replace(/`/g, '\\`')}\`; }">
                 <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
                   <i class="fa-solid fa-up-right-from-square text-xs"></i> 원본 이미지 보기
                 </div>
