@@ -1091,6 +1091,27 @@ function setupEventListeners() {
     });
   }
 
+  // Photo Gallery Carousel Collapsible Toggle
+  const carouselHeaderToggle = document.getElementById('carouselHeaderToggle');
+  const carouselBody = document.getElementById('carouselBody');
+  const carouselChevron = document.getElementById('carouselChevron');
+  let isCarouselCollapsed = false;
+
+  if (carouselHeaderToggle && carouselBody) {
+    carouselHeaderToggle.addEventListener('click', () => {
+      isCarouselCollapsed = !isCarouselCollapsed;
+      if (isCarouselCollapsed) {
+        carouselBody.classList.add('hidden');
+        if (carouselChevron) carouselChevron.style.transform = 'rotate(180deg)';
+        carouselHeaderToggle.classList.remove('mb-3');
+      } else {
+        carouselBody.classList.remove('hidden');
+        if (carouselChevron) carouselChevron.style.transform = 'rotate(0deg)';
+        carouselHeaderToggle.classList.add('mb-3');
+      }
+    });
+  }
+
   // Theme Toggle
   document.getElementById('themeToggleBtn').addEventListener('click', () => {
     setTheme(currentTheme === 'dark' ? 'light' : 'dark');

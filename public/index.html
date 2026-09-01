@@ -202,11 +202,11 @@
         </div>
       </div>
 
-      <!-- Top Unlimited Photo Carousel Slider (ALWAYS UNBLURRED & FULLY VISIBLE) -->
+      <!-- Top Unlimited Photo Carousel Slider (WITH COLLAPSE/EXPAND TOGGLE) -->
       <div class="theme-card rounded-2xl p-4 shadow-sm relative overflow-hidden group/carousel" id="photoCarouselContainer">
         
         <!-- Carousel Header & Control Buttons -->
-        <div class="flex items-center justify-between mb-3">
+        <div id="carouselHeaderToggle" class="flex items-center justify-between cursor-pointer select-none mb-3">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
             <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -216,7 +216,7 @@
             </h3>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2" onclick="event.stopPropagation()">
             <input type="file" id="carouselFileInput" accept="image/*" multiple class="hidden" onchange="handleCarouselUpload(event)">
             <button onclick="document.getElementById('carouselFileInput').click()" class="px-3 py-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5">
               <i class="fa-solid fa-plus text-xs"></i> 사진 추가
@@ -224,28 +224,34 @@
             <button onclick="resetCarouselPhotos()" title="기본 4장으로 복원" class="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center text-xs transition-all border border-slate-200 dark:border-slate-700">
               <i class="fa-solid fa-rotate-left"></i>
             </button>
+            <button id="btnToggleCarousel" title="접기/펼치기" class="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center text-xs transition-all border border-slate-200 dark:border-slate-700">
+              <i class="fa-solid fa-chevron-up text-xs transition-transform duration-200" id="carouselChevron"></i>
+            </button>
           </div>
         </div>
 
-        <!-- Carousel Viewport & Slider Grid -->
-        <div class="relative overflow-hidden rounded-xl">
-          <!-- Slide Track -->
-          <div id="carouselTrack" class="grid grid-cols-2 sm:grid-cols-4 gap-4 transition-all duration-300">
-            <!-- Rendered via JS -->
+        <!-- Carousel Body Content Container -->
+        <div id="carouselBody">
+          <!-- Viewport & Slider Grid -->
+          <div class="relative overflow-hidden rounded-xl">
+            <!-- Slide Track -->
+            <div id="carouselTrack" class="grid grid-cols-2 sm:grid-cols-4 gap-4 transition-all duration-300">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Prev/Next Controls (visible when pages > 1) -->
+            <button id="btnPrevCarousel" class="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/75 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-lg backdrop-blur-md hidden z-10">
+              <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            <button id="btnNextCarousel" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/75 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-lg backdrop-blur-md hidden z-10">
+              <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
           </div>
 
-          <!-- Prev/Next Controls (visible when pages > 1) -->
-          <button id="btnPrevCarousel" class="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/75 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-lg backdrop-blur-md hidden z-10">
-            <i class="fa-solid fa-chevron-left text-xs"></i>
-          </button>
-          <button id="btnNextCarousel" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/75 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-lg backdrop-blur-md hidden z-10">
-            <i class="fa-solid fa-chevron-right text-xs"></i>
-          </button>
-        </div>
-
-        <!-- Pagination Dots -->
-        <div id="carouselDots" class="flex justify-center items-center gap-1.5 mt-3 hidden">
-          <!-- JS dots -->
+          <!-- Pagination Dots -->
+          <div id="carouselDots" class="flex justify-center items-center gap-1.5 mt-3 hidden">
+            <!-- JS dots -->
+          </div>
         </div>
 
       </div>
