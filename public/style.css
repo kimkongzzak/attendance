@@ -128,16 +128,16 @@ html.dark .calendar-day-btn:hover:not(.empty-day) {
   background-color: #334155;
 }
 
-/* Light Mode Weekend & Holiday Background Tints (영업일 가시성 극대화) */
+/* Light Mode Weekend & Holiday Background Tints */
 html.light .calendar-day-btn.sunday-day,
 html.light .calendar-day-btn.holiday-day {
-  background-color: #fff1f2 !important; /* Soft Rose Background */
+  background-color: #fff1f2 !important;
   border-color: #fecdd3 !important;
   color: #e11d48 !important;
 }
 
 html.light .calendar-day-btn.saturday-day:not(.holiday-day) {
-  background-color: #f0f9ff !important; /* Soft Sky Background */
+  background-color: #f0f9ff !important;
   border-color: #bae6fd !important;
   color: #0284c7 !important;
 }
@@ -145,13 +145,13 @@ html.light .calendar-day-btn.saturday-day:not(.holiday-day) {
 /* Dark Mode Weekend & Holiday Background Tints */
 html.dark .calendar-day-btn.sunday-day,
 html.dark .calendar-day-btn.holiday-day {
-  background-color: rgba(225, 29, 72, 0.12) !important; /* Dark Rose Background Tint */
+  background-color: rgba(225, 29, 72, 0.12) !important;
   border-color: rgba(225, 29, 72, 0.35) !important;
   color: #f43f5e !important;
 }
 
 html.dark .calendar-day-btn.saturday-day:not(.holiday-day) {
-  background-color: rgba(14, 165, 233, 0.12) !important; /* Dark Sky Background Tint */
+  background-color: rgba(14, 165, 233, 0.12) !important;
   border-color: rgba(14, 165, 233, 0.35) !important;
   color: #38bdf8 !important;
 }
@@ -214,7 +214,7 @@ html.dark .summary-row-selected {
   opacity: 0.3;
 }
 
-/* Lock Overlay Notice Aligned to Top (No Scrolling Needed) */
+/* Centered Floating Glassmorphism Lock Overlay Card */
 .auth-lock-overlay {
   position: absolute;
   inset: 0;
@@ -222,20 +222,17 @@ html.dark .summary-row-selected {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding-top: 3.5rem;
+  justify-content: center;
   background-color: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   border-radius: 1rem;
-  border: 1px solid rgba(245, 158, 11, 0.3);
   color: #ffffff;
   text-align: center;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  transition: all 0.3s ease;
 }
 
 html.light .auth-lock-overlay {
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(248, 250, 252, 0.7);
   color: #0f172a;
 }

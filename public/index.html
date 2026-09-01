@@ -50,7 +50,7 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
-        <!-- Auth Lock / Unlock Button (Left of Theme Toggle, No Emoji) -->
+        <!-- Auth Lock / Unlock Button (Left of Theme Toggle) -->
         <button id="btnAuthToggle" class="px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white border border-amber-400/30">
           <i class="fa-solid fa-lock text-sm" id="authIcon"></i>
           <span id="authBtnText">인증하기</span>
@@ -365,20 +365,21 @@
 
       </div>
 
-      <!-- Lock Overlay Banner for Unauthenticated State (PROMINENT AT TOP) -->
+      <!-- Lock Overlay Banner for Unauthenticated State (PERFECTLY CENTERED ELEGANT FLOATING CARD) -->
       <div id="rightPanelLockOverlay" class="auth-lock-overlay cursor-pointer" onclick="openAuthModal()">
-        <div class="bg-amber-500/10 dark:bg-amber-500/20 p-3 rounded-2xl border border-amber-500/30 mb-3 flex items-center gap-3">
-          <i class="fa-solid fa-shield-halved text-3xl text-amber-500 animate-pulse"></i>
-          <div class="text-left">
-            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">관리자 인증이 필요합니다</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-300">
-              상단 <span class="font-bold text-amber-600 dark:text-amber-400">[인증하기]</span> 버튼을 눌러 비밀번호를 입력해 주세요. (인증 시 2시간 유지)
-            </p>
+        <div class="theme-card max-w-md w-full p-8 rounded-3xl shadow-2xl border border-amber-500/30 flex flex-col items-center text-center transform transition-transform hover:scale-[1.02] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white text-2xl shadow-lg shadow-amber-500/30 mb-4">
+            <i class="fa-solid fa-shield-halved animate-pulse"></i>
           </div>
+          <h3 class="text-xl font-extrabold text-slate-900 dark:text-white mb-2">관리자 인증이 필요합니다</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-300 leading-relaxed mb-6">
+            임직원 근태 현황 요약 및 상세 태깅 내역은 보안 정보입니다.<br>
+            비밀번호를 입력하시면 <span class="font-bold text-amber-600 dark:text-amber-400">2시간 동안 자유롭게 조회</span>하실 수 있습니다.
+          </p>
+          <button class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-extrabold rounded-xl transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-key text-sm"></i> 비밀번호 입력하고 조회하기
+          </button>
         </div>
-        <button class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2">
-          <i class="fa-solid fa-key text-sm"></i> 인증 창 열기
-        </button>
       </div>
 
     </section>
