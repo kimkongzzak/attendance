@@ -1091,32 +1091,27 @@ function setupEventListeners() {
     });
   }
 
-  // Photo Gallery Carousel Collapsible Toggle
-  const carouselHeaderToggle = document.getElementById('carouselHeaderToggle');
+  // Photo Gallery Carousel Collapsible Toggle (EXCLUSIVELY VIA CHEVRON BUTTON)
   const btnToggleCarousel = document.getElementById('btnToggleCarousel');
+  const carouselHeaderContainer = document.getElementById('carouselHeaderContainer');
   const carouselBody = document.getElementById('carouselBody');
   const carouselChevron = document.getElementById('carouselChevron');
   let isCarouselCollapsed = false;
 
-  function toggleCarousel(e) {
-    if (e) e.stopPropagation();
-    isCarouselCollapsed = !isCarouselCollapsed;
-    if (isCarouselCollapsed) {
-      carouselBody.classList.add('hidden');
-      if (carouselChevron) carouselChevron.style.transform = 'rotate(180deg)';
-      if (carouselHeaderToggle) carouselHeaderToggle.classList.remove('mb-3');
-    } else {
-      carouselBody.classList.remove('hidden');
-      if (carouselChevron) carouselChevron.style.transform = 'rotate(0deg)';
-      if (carouselHeaderToggle) carouselHeaderToggle.classList.add('mb-3');
-    }
-  }
-
-  if (carouselHeaderToggle && carouselBody) {
-    carouselHeaderToggle.addEventListener('click', toggleCarousel);
-  }
-  if (btnToggleCarousel) {
-    btnToggleCarousel.addEventListener('click', toggleCarousel);
+  if (btnToggleCarousel && carouselBody) {
+    btnToggleCarousel.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isCarouselCollapsed = !isCarouselCollapsed;
+      if (isCarouselCollapsed) {
+        carouselBody.classList.add('hidden');
+        if (carouselChevron) carouselChevron.style.transform = 'rotate(180deg)';
+        if (carouselHeaderContainer) carouselHeaderContainer.classList.remove('mb-3');
+      } else {
+        carouselBody.classList.remove('hidden');
+        if (carouselChevron) carouselChevron.style.transform = 'rotate(0deg)';
+        if (carouselHeaderContainer) carouselHeaderContainer.classList.add('mb-3');
+      }
+    });
   }
 
   // Theme Toggle
