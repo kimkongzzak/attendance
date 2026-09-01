@@ -1,0 +1,161 @@
+/* Refined Modern Light Mode & Dark Mode Styling */
+
+:root, html.light {
+  --bg-primary: #f8fafc;
+  --bg-header: rgba(255, 255, 255, 0.95);
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --input-bg: #ffffff;
+  --table-header-bg: #f1f5f9;
+  --table-row-hover: #f8fafc;
+  --badge-card-bg: #e0e7ff;
+  --badge-card-text: #3730a3;
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+}
+
+html.dark {
+  --bg-primary: #0f172a;
+  --bg-header: rgba(30, 41, 59, 0.9);
+  --bg-card: #1e293b;
+  --border-color: #334155;
+  --border-hover: #475569;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --input-bg: #0f172a;
+  --table-header-bg: #0f172a;
+  --table-row-hover: rgba(51, 65, 85, 0.5);
+  --badge-card-bg: rgba(99, 102, 241, 0.1);
+  --badge-card-text: #a5b4fc;
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+body {
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Theme Elements */
+.theme-header {
+  background-color: var(--bg-header);
+  border-color: var(--border-color);
+}
+
+.theme-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
+}
+
+.theme-input {
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+.theme-input:focus {
+  border-color: #f59e0b;
+  outline: none;
+}
+
+.theme-table-header {
+  background-color: var(--table-header-bg);
+  color: var(--text-muted);
+}
+
+.theme-table-row {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.15s ease;
+}
+.theme-table-row:hover {
+  background-color: var(--table-row-hover);
+}
+
+/* Calendar Button Base & Theme */
+.calendar-day-btn {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  position: relative;
+}
+
+html.light .calendar-day-btn {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+html.light .calendar-day-btn:hover:not(.empty-day) {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+html.dark .calendar-day-btn {
+  background-color: rgba(15, 23, 42, 0.5);
+  border: 1px solid #334155;
+  color: #f8fafc;
+}
+html.dark .calendar-day-btn:hover:not(.empty-day) {
+  background-color: #334155;
+}
+
+.calendar-day-btn.selected-day {
+  background-color: #f59e0b !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-color: #d97706 !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.calendar-day-btn.today-day:not(.selected-day) {
+  border: 2px solid #f59e0b !important;
+  color: #d97706 !important;
+  font-weight: 700;
+}
+html.dark .calendar-day-btn.today-day:not(.selected-day) {
+  color: #f59e0b !important;
+}
+
+.calendar-day-btn.empty-day {
+  cursor: default;
+  opacity: 0.15;
+  border: none !important;
+}
+
+/* Row Selected State for DB Summary Table */
+html.light .summary-row-selected {
+  background-color: #fef3c7 !important;
+  border-left: 4px solid #f59e0b !important;
+}
+html.dark .summary-row-selected {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  border-left: 4px solid #f59e0b !important;
+}
