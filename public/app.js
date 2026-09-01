@@ -564,22 +564,32 @@ function processAndRenderData(data) {
   renderDetailedTable();
 }
 
-// Render Top KPI Stats
+// Render Top KPI Stats (Safe Null Checks for Gallery Replacements)
 function renderDashboardStats(data) {
   const totalTracked = trackedEmployees.length;
   const attendedCount = employeeSummaries.filter(s => s.tagCount > 0).length;
   const absentCount = totalTracked - attendedCount;
 
-  document.getElementById('kpiAttendedCount').textContent = attendedCount;
-  document.getElementById('kpiAttendedTotal').textContent = `/ ${totalTracked} 명`;
-  document.getElementById('kpiAttendedBar').style.width = totalTracked > 0 ? `${(attendedCount / totalTracked) * 100}%` : '0%';
+  const kpiAttendedCount = document.getElementById('kpiAttendedCount');
+  if (kpiAttendedCount) kpiAttendedCount.textContent = attendedCount;
 
-  document.getElementById('kpiAbsentCount').textContent = absentCount;
+  const kpiAttendedTotal = document.getElementById('kpiAttendedTotal');
+  if (kpiAttendedTotal) kpiAttendedTotal.textContent = `/ ${totalTracked} 명`;
 
-  document.getElementById('kpiTotalTags').textContent = filteredLogs.length;
-  document.getElementById('kpiTotalRawSub').textContent = `전체 API: ${data.totalRawRecords || 0}건 중 필터링`;
+  const kpiAttendedBar = document.getElementById('kpiAttendedBar');
+  if (kpiAttendedBar) kpiAttendedBar.style.width = totalTracked > 0 ? `${(attendedCount / totalTracked) * 100}%` : '0%';
 
-  document.getElementById('kpiRegisteredEmpCount').textContent = totalTracked;
+  const kpiAbsentCount = document.getElementById('kpiAbsentCount');
+  if (kpiAbsentCount) kpiAbsentCount.textContent = absentCount;
+
+  const kpiTotalTags = document.getElementById('kpiTotalTags');
+  if (kpiTotalTags) kpiTotalTags.textContent = filteredLogs.length;
+
+  const kpiTotalRawSub = document.getElementById('kpiTotalRawSub');
+  if (kpiTotalRawSub) kpiTotalRawSub.textContent = `전체 API: ${data.totalRawRecords || 0}건 중 필터링`;
+
+  const kpiRegisteredEmpCount = document.getElementById('kpiRegisteredEmpCount');
+  if (kpiRegisteredEmpCount) kpiRegisteredEmpCount.textContent = totalTracked;
 }
 
 // Render Employee Summary DB Table Structure

@@ -198,69 +198,27 @@
           </div>
         </div>
 
-        <!-- Top KPI Summary Cards -->
+        <!-- Top 4 Photo Gallery Cards -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           
-          <!-- KPI 1: Attended Count -->
-          <div class="theme-card rounded-2xl p-4 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
-              <span class="text-xs font-semibold">출근 인원</span>
-              <div class="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs">
-                <i class="fa-solid fa-user-check"></i>
-              </div>
-            </div>
-            <div class="flex items-baseline gap-1">
-              <span id="kpiAttendedCount" class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">0</span>
-              <span id="kpiAttendedTotal" class="text-xs font-medium text-slate-500 dark:text-slate-400">/ 0 명</span>
-            </div>
-            <div class="w-full bg-slate-100 dark:bg-slate-700/50 rounded-full h-1.5 mt-2">
-              <div id="kpiAttendedBar" class="bg-emerald-500 h-1.5 rounded-full transition-all" style="width: 0%"></div>
-            </div>
+          <!-- Photo Card 1 -->
+          <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative">
+            <img src="/images/dog1.jpg" alt="귀여운 강아지 1" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
           </div>
 
-          <!-- KPI 2: Absent Count -->
-          <div class="theme-card rounded-2xl p-4 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
-              <span class="text-xs font-semibold">미태깅 (미출근)</span>
-              <div class="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center text-xs">
-                <i class="fa-solid fa-user-xmark"></i>
-              </div>
-            </div>
-            <div class="flex items-baseline gap-1">
-              <span id="kpiAbsentCount" class="text-3xl font-extrabold text-rose-600 dark:text-rose-400">0</span>
-              <span class="text-xs font-medium text-slate-500 dark:text-slate-400">명</span>
-            </div>
-            <span class="text-[10px] text-slate-400 mt-2 block">금일 태깅 기록 없음</span>
+          <!-- Photo Card 2 -->
+          <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative">
+            <img src="/images/dog2.png" alt="귀여운 강아지 2" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
           </div>
 
-          <!-- KPI 3: Total Filtered Tags -->
-          <div class="theme-card rounded-2xl p-4 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
-              <span class="text-xs font-semibold">총 필터 태깅 건수</span>
-              <div class="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs">
-                <i class="fa-solid fa-fingerprint"></i>
-              </div>
-            </div>
-            <div class="flex items-baseline gap-1">
-              <span id="kpiTotalTags" class="text-3xl font-extrabold text-amber-600 dark:text-amber-400">0</span>
-              <span class="text-xs font-medium text-slate-500 dark:text-slate-400">건</span>
-            </div>
-            <span id="kpiTotalRawSub" class="text-[10px] text-slate-400 mt-2 block truncate">전체 API: 0건 중 필터링</span>
+          <!-- Photo Card 3 -->
+          <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative">
+            <img src="/images/dog3.jpg" alt="귀여운 강아지 3" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
           </div>
 
-          <!-- KPI 4: Total Registered Employees -->
-          <div class="theme-card rounded-2xl p-4 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
-              <span class="text-xs font-semibold">등록 관리대상</span>
-              <div class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs">
-                <i class="fa-solid fa-users"></i>
-              </div>
-            </div>
-            <div class="flex items-baseline gap-1">
-              <span id="kpiRegisteredEmpCount" class="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">0</span>
-              <span class="text-xs font-medium text-slate-500 dark:text-slate-400">명</span>
-            </div>
-            <span class="text-[10px] text-slate-400 mt-2 block">좌측에서 추가/삭제 가능</span>
+          <!-- Photo Card 4 -->
+          <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative">
+            <img src="/images/dog4.jpg" alt="귀여운 강아지 4" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
           </div>
 
         </div>
