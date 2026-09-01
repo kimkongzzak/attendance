@@ -202,29 +202,26 @@
         </div>
       </div>
 
-      <!-- Top Unlimited Photo Carousel Slider (WITH COLLAPSE/EXPAND TOGGLE) -->
+      <!-- Top Unlimited Photo Carousel Slider (EXACT MATCH TOGGLE DESIGN WITH CALENDAR & MEAL MENU) -->
       <div class="theme-card rounded-2xl p-4 shadow-sm relative overflow-hidden group/carousel" id="photoCarouselContainer">
         
         <!-- Carousel Header & Control Buttons -->
         <div id="carouselHeaderToggle" class="flex items-center justify-between cursor-pointer select-none mb-3">
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-            <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <i class="fa-solid fa-images text-amber-500"></i>
-              <span>포토 갤러리</span>
-              <span id="carouselCountBadge" class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold">4장</span>
-            </h3>
-          </div>
+          <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <i class="fa-solid fa-images text-amber-500"></i>
+            <span>포토 갤러리</span>
+            <span id="carouselCountBadge" class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold">4장</span>
+          </h3>
 
-          <div class="flex items-center gap-2" onclick="event.stopPropagation()">
+          <div class="flex items-center gap-2">
             <input type="file" id="carouselFileInput" accept="image/*" multiple class="hidden" onchange="handleCarouselUpload(event)">
-            <button onclick="document.getElementById('carouselFileInput').click()" class="px-3 py-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5">
+            <button onclick="event.stopPropagation(); document.getElementById('carouselFileInput').click()" title="사진 추가" class="px-3 py-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5">
               <i class="fa-solid fa-plus text-xs"></i> 사진 추가
             </button>
-            <button onclick="resetCarouselPhotos()" title="기본 4장으로 복원" class="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center text-xs transition-all border border-slate-200 dark:border-slate-700">
+            <button onclick="event.stopPropagation(); resetCarouselPhotos()" title="기본 4장으로 복원" class="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center text-xs transition-all border border-slate-200 dark:border-slate-700">
               <i class="fa-solid fa-rotate-left"></i>
             </button>
-            <button id="btnToggleCarousel" title="접기/펼치기" class="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center text-xs transition-all border border-slate-200 dark:border-slate-700">
+            <button id="btnToggleCarousel" title="접기/펼치기" class="w-6 h-6 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors">
               <i class="fa-solid fa-chevron-up text-xs transition-transform duration-200" id="carouselChevron"></i>
             </button>
           </div>
