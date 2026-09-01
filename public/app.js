@@ -57,6 +57,12 @@ const BUILTIN_KR_HOLIDAYS = {
 // Dynamic Holidays Map
 let krHolidaysMap = { ...BUILTIN_KR_HOLIDAYS };
 
+// Auth State Management (2-hour Expiration)
+const AUTH_KEY = 'admin_auth_session';
+const AUTH_DURATION_MS = 2 * 60 * 60 * 1000; // 2 Hours
+
+let isAuthenticated = false;
+
 // App State
 let trackedEmployees = [];
 let todayDateStr = new Date().toISOString().split('T')[0];
@@ -73,6 +79,7 @@ let currentTheme = 'light';
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
+  checkAuthState();
   loadTrackedEmployees();
   initDateState();
   fetchYearHolidays(calendarViewDate.getFullYear());
@@ -81,6 +88,75 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchAttendance(selectedDate);
   fetchMealMenu(selectedDate);
 });
+
+// Check Admin Auth State & Expiration
+function checkAuthState() {
+  const saved = localStorage.getItem(AUTH_KEY);
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      if (data.authenticated && data.expiresAt && Date.now() < data.expiresAt) {
+        isAuthenticated = true;
+        updateAuthUI(true, data.expiresAt);
+        return;
+      }
+    } catch (e) {}
+  }
+  isAuthenticated = false;
+  updateAuthUI(false);
+}
+
+function updateAuthUI(authenticated, expiresAt = null) {
+  const trackedEmpCard = document.getElementById('trackedEmpCard');
+  const dashboardRightPanel = document.getElementById('dashboardRightPanel');
+  const rightPanelLockOverlay = document.getElementById('rightPanelLockOverlay');
+
+  const authBtnText = document.getElementById('authBtnText');
+  const authIcon = document.getElementById('authIcon');
+  const btnAuthToggle = document.getElementById('btnAuthToggle');
+
+  if (authenticated) {
+    // Unblur sensitive areas
+    if (trackedEmpCard) trackedEmpCard.classList.remove('content-locked');
+    if (dashboardRightPanel) dashboardRightPanel.classList.remove('content-locked');
+    if (rightPanelLockOverlay) rightPanelLockOverlay.classList.add('hidden');
+
+    if (authBtnText) authBtnText.textContent = '🔓 인증완료';
+    if (authIcon) authIcon.className = 'fa-solid fa-lock-open text-sm';
+    if (btnAuthToggle) {
+      btnAuthToggle.className = 'px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500/30';
+    }
+  } else {
+    // Blur sensitive areas (Only Calendar & Meal Menu remain visible)
+    if (trackedEmpCard) trackedEmpCard.classList.add('content-locked');
+    if (dashboardRightPanel) dashboardRightPanel.classList.add('content-locked');
+    if (rightPanelLockOverlay) rightPanelLockOverlay.classList.remove('hidden');
+
+    if (authBtnText) authBtnText.textContent = '🔒 인증하기';
+    if (authIcon) authIcon.className = 'fa-solid fa-lock text-sm';
+    if (btnAuthToggle) {
+      btnAuthToggle.className = 'px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white border border-amber-400/30';
+    }
+  }
+}
+
+function openAuthModal() {
+  const modal = document.getElementById('authModal');
+  const errorMsg = document.getElementById('authErrorMsg');
+  const input = document.getElementById('inputAdminPassword');
+
+  if (errorMsg) errorMsg.classList.add('hidden');
+  if (input) input.value = '';
+  if (modal) modal.classList.remove('hidden');
+  setTimeout(() => input && input.focus(), 100);
+}
+
+function closeAuthModal() {
+  const modal = document.getElementById('authModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+window.openAuthModal = openAuthModal;
 
 // Fetch Public Holidays for Year
 async function fetchYearHolidays(year) {
@@ -100,7 +176,7 @@ async function fetchYearHolidays(year) {
   }
 }
 
-// Fetch Daily Meal Menu from Proxy API (Instant direct loading with proxy fallback & caching)
+// Fetch Daily Meal Menu from Proxy API (ALWAYS UNBLURRED & VISIBLE)
 async function fetchMealMenu(dateStr) {
   const container = document.getElementById('mealMenuContainer');
   const dateText = document.getElementById('mealDateText');
@@ -151,7 +227,7 @@ async function fetchMealMenu(dateStr) {
           const directImgUrl = `https://t.bodyfriend.co.kr${firstImg.imgSrc}`;
           const proxyImgUrl = `/api/img-proxy?url=${encodeURIComponent(directImgUrl)}`;
 
-          // Preload image in background immediately for instant load
+          // Preload image in background
           const preloader = new Image();
           preloader.src = directImgUrl;
 
@@ -310,7 +386,7 @@ function initDateState() {
   calendarViewDate = new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
-// Calendar Component Logic (Sunday Red, Saturday Blue, Holiday Red)
+// Calendar Component Logic (ALWAYS UNBLURRED & VISIBLE)
 function renderCalendar() {
   const year = calendarViewDate.getFullYear();
   const month = calendarViewDate.getMonth();
@@ -559,6 +635,11 @@ function renderEmpSummaryDBTable() {
 
 // Toggle Employee Filter
 window.toggleEmpFilter = function(cardId) {
+  if (!isAuthenticated) {
+    openAuthModal();
+    return;
+  }
+
   if (selectedEmpFilter === cardId) {
     selectedEmpFilter = null;
   } else {
@@ -642,8 +723,58 @@ function renderDetailedTable() {
   }).join('');
 }
 
-// Event Listeners Setup (Collapsible toggles for Calendar & Meal)
+// Event Listeners Setup
 function setupEventListeners() {
+  // Auth Lock / Unlock Button Handler
+  document.getElementById('btnAuthToggle').addEventListener('click', () => {
+    if (isAuthenticated) {
+      if (confirm('인증 상태를 해제하고 화면을 잠그시겠습니까?')) {
+        localStorage.removeItem(AUTH_KEY);
+        checkAuthState();
+      }
+    } else {
+      openAuthModal();
+    }
+  });
+
+  document.getElementById('btnCloseAuthModal').addEventListener('click', closeAuthModal);
+  document.getElementById('btnCancelAuth').addEventListener('click', closeAuthModal);
+
+  document.getElementById('authForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const password = document.getElementById('inputAdminPassword').value.trim();
+    const errorMsg = document.getElementById('authErrorMsg');
+
+    try {
+      const res = await fetch('/api/verify-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        localStorage.setItem(AUTH_KEY, JSON.stringify({
+          authenticated: true,
+          expiresAt: data.expiresAt || (Date.now() + AUTH_DURATION_MS)
+        }));
+        checkAuthState();
+        closeAuthModal();
+      } else {
+        if (errorMsg) {
+          errorMsg.textContent = data.message || '비밀번호가 올바르지 않습니다.';
+          errorMsg.classList.remove('hidden');
+        }
+      }
+    } catch (err) {
+      console.error('Auth verify error:', err);
+      if (errorMsg) {
+        errorMsg.textContent = '서버 연결 중 오류가 발생하였습니다.';
+        errorMsg.classList.remove('hidden');
+      }
+    }
+  });
+
   // Calendar Collapsible Toggle
   const calendarHeaderToggle = document.getElementById('calendarHeaderToggle');
   const calendarBody = document.getElementById('calendarBody');
@@ -741,6 +872,10 @@ function setupEventListeners() {
   // Add Employee Modal
   const addEmpModal = document.getElementById('addEmpModal');
   document.getElementById('btnOpenAddEmpModal').addEventListener('click', () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
     addEmpModal.classList.remove('hidden');
   });
   document.getElementById('btnCloseAddEmpModal').addEventListener('click', () => {
@@ -774,6 +909,10 @@ function setupEventListeners() {
   });
 
   document.getElementById('btnResetEmployees').addEventListener('click', () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
     if (confirm('관리 대상 목록을 초기 7인으로 복원하시겠습니까?')) {
       trackedEmployees = [...DEFAULT_EMPLOYEES];
       saveTrackedEmployees();
@@ -783,6 +922,10 @@ function setupEventListeners() {
   // Raw JSON Modal
   const jsonModal = document.getElementById('jsonModal');
   document.getElementById('btnViewRawJson').addEventListener('click', () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
     jsonModal.classList.remove('hidden');
   });
   document.getElementById('btnCloseJsonModal').addEventListener('click', () => {
@@ -800,4 +943,7 @@ function setupEventListeners() {
       console.error('Copy error:', err);
     });
   });
+
+  // Check auth session every 1 minute for automatic 2-hour expiration
+  setInterval(checkAuthState, 60000);
 }

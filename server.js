@@ -70,6 +70,30 @@ app.get('/api/attendance', async (req, res) => {
   }
 });
 
+// Admin Authentication Verification Endpoint
+app.post('/api/verify-auth', (req, res) => {
+  const { password } = req.body;
+  const adminKey = process.env.ADMIN_KEY || process.env.admin_key || '';
+
+  if (!adminKey) {
+    console.warn('[Auth Warning] ADMIN_KEY environment variable is not configured.');
+  }
+
+  if (password && password === adminKey) {
+    const expiresAt = Date.now() + (2 * 60 * 60 * 1000); // 2 hours valid
+    return res.json({
+      success: true,
+      message: '인증에 성공하였습니다. (2시간 유지)',
+      expiresAt
+    });
+  } else {
+    return res.status(401).json({
+      success: false,
+      message: '비밀번호가 올바르지 않습니다.'
+    });
+  }
+});
+
 // Korean Public Holidays Proxy Endpoint
 app.get('/api/holidays', async (req, res) => {
   try {
@@ -119,7 +143,6 @@ app.get('/api/img-proxy', async (req, res) => {
     const imgUrl = req.query.url;
     if (!imgUrl) return res.status(400).send('Missing url parameter');
 
-    // Return from in-memory cache if available
     if (imgCache[imgUrl]) {
       res.setHeader('Content-Type', imgCache[imgUrl].contentType);
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
@@ -137,7 +160,6 @@ app.get('/api/img-proxy', async (req, res) => {
     const contentType = response.headers['content-type'] || 'image/jpeg';
     const buffer = Buffer.from(response.data);
 
-    // Cache in memory (up to 50 images)
     if (Object.keys(imgCache).length > 50) {
       delete imgCache[Object.keys(imgCache)[0]];
     }

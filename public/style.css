@@ -167,7 +167,7 @@ html.dark .calendar-day-btn.saturday-day:not(.holiday-day) {
   background-color: #ef4444;
 }
 
-/* Selected & Today Day Overrides (Highest Specificity) */
+/* Selected & Today Day Overrides */
 .calendar-day-btn.selected-day {
   background-color: #f59e0b !important;
   color: #ffffff !important;
@@ -199,4 +199,41 @@ html.light .summary-row-selected {
 html.dark .summary-row-selected {
   background-color: rgba(245, 158, 11, 0.15) !important;
   border-left: 4px solid #f59e0b !important;
+}
+
+/* Blur Protection for Unauthenticated Sections */
+.protected-section {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.protected-section.content-locked {
+  filter: blur(14px) grayscale(60%);
+  pointer-events: none !important;
+  user-select: none !important;
+  opacity: 0.3;
+}
+
+/* Lock Overlay Notice */
+.auth-lock-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  border-radius: 1rem;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #ffffff;
+  text-align: center;
+  padding: 1.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+html.light .auth-lock-overlay {
+  background-color: rgba(255, 255, 255, 0.65);
+  color: #0f172a;
 }

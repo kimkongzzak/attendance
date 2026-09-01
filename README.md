@@ -93,12 +93,13 @@ attendance/
 
 ## 🔐 환경 변수 설정 (Environment Variables)
 
-Vercel 배포 시 **Project Settings ➔ Environment Variables**에 아래 환경 변수를 등록하여 API 요청 헤더를 관리할 수 있습니다:
+Vercel 배포 시 **Project Settings ➔ Environment Variables**에 아래 환경 변수를 등록하여 관리할 수 있습니다:
 
 | 환경 변수 명 | 설명 |
 | :--- | :--- |
 | `ATTENDANCE_API_CODE` | API 요청 헤더 `code` |
 | `ATTENDANCE_API_KEY` | API 요청 헤더 `key` |
+| `ADMIN_KEY` (`admin_key`) | 관리자 화면 해제 비밀번호 (`[🔒 인증하기]` 버튼) |
 | `PORT` | 로컬 서버 포트 (선택 사항) |
 
 ---
