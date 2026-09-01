@@ -79,10 +79,10 @@
     <!-- Left Sidebar: Calendar & Meal Menu & Employee Management (3 cols) -->
     <aside class="lg:col-span-3 flex flex-col gap-5">
       
-      <!-- Calendar Card (ALWAYS UNBLURRED & VISIBLE) -->
+      <!-- Calendar Card (UNIFIED UNIFORM BASE TITLE SIZE) -->
       <div class="theme-card rounded-2xl p-4 shadow-sm">
         <div id="calendarHeaderToggle" class="flex items-center justify-between cursor-pointer select-none">
-          <h2 class="text-sm font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
+          <h2 class="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
             <i class="fa-regular fa-calendar-days text-amber-500"></i> 날짜 선택
           </h2>
           <div class="flex items-center gap-2">
@@ -130,10 +130,10 @@
         </div>
       </div>
 
-      <!-- Daily Meal Menu Card (ALWAYS UNBLURRED & VISIBLE) -->
+      <!-- Daily Meal Menu Card (UNIFIED UNIFORM BASE TITLE SIZE) -->
       <div class="theme-card rounded-2xl p-4 shadow-sm">
         <div id="mealHeaderToggle" class="flex items-center justify-between cursor-pointer select-none">
-          <h3 class="text-xs font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
+          <h3 class="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
             <span class="text-sm">🍱</span>
             <span>오늘의 식단</span>
           </h3>
@@ -153,10 +153,10 @@
         </div>
       </div>
 
-      <!-- Target Employee Management Card (PROTECTED & BLURRED WHEN UNAUTHENTICATED) -->
+      <!-- Target Employee Management Card (UNIFIED UNIFORM BASE TITLE SIZE) -->
       <div class="protected-section theme-card rounded-2xl p-4 shadow-sm relative overflow-hidden" id="trackedEmpCard">
         <div class="flex items-center justify-between mb-2.5">
-          <h3 class="text-xs font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
+          <h3 class="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
             <i class="fa-solid fa-users-gear text-indigo-500"></i>
             <span>관리 대상 (<span id="trackedEmpCount">0</span>명)</span>
           </h3>
@@ -202,12 +202,12 @@
         </div>
       </div>
 
-      <!-- Top Unlimited Photo Carousel Slider (EXACT MATCH TOGGLE DESIGN WITH CALENDAR & MEAL MENU) -->
+      <!-- Top Unlimited Photo Carousel Slider (UNIFIED UNIFORM BASE TITLE SIZE) -->
       <div class="theme-card rounded-2xl p-4 shadow-sm relative overflow-hidden group/carousel" id="photoCarouselContainer">
         
         <!-- Carousel Header & Control Buttons -->
         <div id="carouselHeaderToggle" class="flex items-center justify-between cursor-pointer select-none mb-3">
-          <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+          <h3 class="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
             <i class="fa-solid fa-images text-amber-500"></i>
             <span>포토 갤러리</span>
             <span id="carouselCountBadge" class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold">4장</span>
@@ -270,7 +270,7 @@
             </div>
           </div>
 
-          <!-- Employee Attendance Summary (DB 테이블 구조) -->
+          <!-- Employee Attendance Summary Card (UNIFIED UNIFORM BASE TITLE SIZE) -->
           <div class="theme-card rounded-2xl p-5 shadow-sm transition-all duration-300" id="empSummaryCard">
 
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-700/50">
@@ -308,7 +308,7 @@
             </div>
           </div>
 
-          <!-- Detailed Attendance Table Card -->
+          <!-- Detailed Attendance Table Card (UNIFIED UNIFORM BASE TITLE SIZE) -->
           <div class="theme-card rounded-2xl p-5 shadow-sm flex-1 flex flex-col">
             
             <!-- Table Controls & Header -->
