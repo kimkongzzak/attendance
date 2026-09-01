@@ -214,7 +214,7 @@ html.dark .summary-row-selected {
   opacity: 0.3;
 }
 
-/* Centered Floating Glassmorphism Lock Overlay Card */
+/* Lock Overlay Notice Aligned to Height Between Calendar & Meal Menu */
 .auth-lock-overlay {
   position: absolute;
   inset: 0;
@@ -222,17 +222,19 @@ html.dark .summary-row-selected {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: 13rem;
   background-color: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(8px);
   border-radius: 1rem;
   color: #ffffff;
   text-align: center;
-  padding: 1.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
   transition: all 0.3s ease;
 }
 
 html.light .auth-lock-overlay {
-  background-color: rgba(248, 250, 252, 0.7);
+  background-color: rgba(248, 250, 252, 0.75);
   color: #0f172a;
 }
