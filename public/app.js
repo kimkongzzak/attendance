@@ -76,10 +76,92 @@ let selectedEmpFilter = null; // Filter detailed table by cardId
 let searchQuery = '';
 let currentTheme = 'light';
 
+// Top Photo Custom Upload & Storage (5MB Limit Validation)
+const MAX_PHOTO_SIZE_MB = 5;
+const DEFAULT_TOP_PHOTOS = [
+  '/images/dog1.jpg',
+  '/images/dog2.png',
+  '/images/dog3.jpg',
+  '/images/dog4.jpg'
+];
+
+function loadCustomTopPhotos() {
+  for (let i = 0; i < 4; i++) {
+    const saved = localStorage.getItem(`custom_photo_${i}`);
+    const imgEl = document.getElementById(`topPhotoImg${i}`);
+    if (imgEl) {
+      if (saved) {
+        imgEl.src = saved;
+      } else {
+        imgEl.src = DEFAULT_TOP_PHOTOS[i];
+      }
+    }
+  }
+}
+
+window.handlePhotoUpload = function(event, index) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // File size validation (5MB max)
+  const maxSizeBytes = MAX_PHOTO_SIZE_MB * 1024 * 1024;
+  if (file.size > maxSizeBytes) {
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+    alert(`⚠️ 파일 용량이 너무 큽니다!\n\n- 선택한 파일 용량: ${fileSizeMB} MB\n- 최대 허용 용량: ${MAX_PHOTO_SIZE_MB} MB 이하\n\n5MB 이하의 사진 파일만 등록할 수 있습니다.`);
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const rawDataUrl = e.target.result;
+
+    // Compress photo via HTML5 Canvas for optimal localStorage & instant loading
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const maxDim = 800; // Optimal resolution
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        }
+      } else {
+        if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+      try {
+        localStorage.setItem(`custom_photo_${index}`, compressedDataUrl);
+        const imgEl = document.getElementById(`topPhotoImg${index}`);
+        if (imgEl) imgEl.src = compressedDataUrl;
+      } catch (err) {
+        console.error('localStorage quota error:', err);
+        alert('브라우저 저장 공간이 부족합니다.');
+      }
+    };
+    img.src = rawDataUrl;
+  };
+  reader.readAsDataURL(file);
+};
+
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   checkAuthState();
+  loadCustomTopPhotos();
   loadTrackedEmployees();
   initDateState();
   fetchYearHolidays(calendarViewDate.getFullYear());
