@@ -108,10 +108,11 @@ html.dark ::-webkit-scrollbar-thumb {
   position: relative;
 }
 
+/* Business Days (영업일: 월~금) */
 html.light .calendar-day-btn {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  color: #1e293b;
+  color: #0f172a;
 }
 html.light .calendar-day-btn:hover:not(.empty-day) {
   background-color: #f1f5f9;
@@ -119,7 +120,7 @@ html.light .calendar-day-btn:hover:not(.empty-day) {
 }
 
 html.dark .calendar-day-btn {
-  background-color: rgba(15, 23, 42, 0.5);
+  background-color: rgba(30, 41, 59, 0.6);
   border: 1px solid #334155;
   color: #f8fafc;
 }
@@ -127,19 +128,35 @@ html.dark .calendar-day-btn:hover:not(.empty-day) {
   background-color: #334155;
 }
 
-/* Day Colors: Sunday Red, Saturday Blue */
-.calendar-day-btn.sunday-day {
-  color: #ef4444 !important;
+/* Light Mode Weekend & Holiday Background Tints (영업일 가시성 극대화) */
+html.light .calendar-day-btn.sunday-day,
+html.light .calendar-day-btn.holiday-day {
+  background-color: #fff1f2 !important; /* Soft Rose Background */
+  border-color: #fecdd3 !important;
+  color: #e11d48 !important;
 }
-.calendar-day-btn.saturday-day {
+
+html.light .calendar-day-btn.saturday-day:not(.holiday-day) {
+  background-color: #f0f9ff !important; /* Soft Sky Background */
+  border-color: #bae6fd !important;
   color: #0284c7 !important;
 }
 
-/* Public Holiday Red & Dot Indicator */
-.calendar-day-btn.holiday-day {
-  color: #ef4444 !important;
-  font-weight: 700 !important;
+/* Dark Mode Weekend & Holiday Background Tints */
+html.dark .calendar-day-btn.sunday-day,
+html.dark .calendar-day-btn.holiday-day {
+  background-color: rgba(225, 29, 72, 0.12) !important; /* Dark Rose Background Tint */
+  border-color: rgba(225, 29, 72, 0.35) !important;
+  color: #f43f5e !important;
 }
+
+html.dark .calendar-day-btn.saturday-day:not(.holiday-day) {
+  background-color: rgba(14, 165, 233, 0.12) !important; /* Dark Sky Background Tint */
+  border-color: rgba(14, 165, 233, 0.35) !important;
+  color: #38bdf8 !important;
+}
+
+/* Public Holiday Red Dot Indicator */
 .calendar-day-btn.holiday-day::after {
   content: '';
   position: absolute;
@@ -150,7 +167,7 @@ html.dark .calendar-day-btn:hover:not(.empty-day) {
   background-color: #ef4444;
 }
 
-/* Selected & Today Day Overrides */
+/* Selected & Today Day Overrides (Highest Specificity) */
 .calendar-day-btn.selected-day {
   background-color: #f59e0b !important;
   color: #ffffff !important;
@@ -171,6 +188,7 @@ html.dark .calendar-day-btn:hover:not(.empty-day) {
   cursor: default;
   opacity: 0.15;
   border: none !important;
+  background-color: transparent !important;
 }
 
 /* Row Selected State for DB Summary Table */
