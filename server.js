@@ -22,11 +22,13 @@ const DEFAULT_TARGET_EMPLOYEES = [
   { empNo: 'BF202306010', empName: '이유정', cardId: '0425' }
 ];
 
+// In-memory cache for holidays
+const holidayCache = {};
+
 // Attendance API Core Handler
 async function handleAttendanceFetch(searchDate) {
   const targetUrl = `https://svc.bodyfriend.co.kr/api/attendance-or-meal?searchType=ATTENDANCE&searchDate=${searchDate}`;
 
-  // Environment variables for headers (Vercel Secret / .env compatible)
   const apiCode = process.env.ATTENDANCE_API_CODE || process.env.CODE || process.env.code || '';
   const apiKey = process.env.ATTENDANCE_API_KEY || process.env.KEY || process.env.key || '';
 
@@ -51,7 +53,7 @@ async function handleAttendanceFetch(searchDate) {
   };
 }
 
-// API Proxy Endpoint
+// Attendance Proxy Endpoint
 app.get('/api/attendance', async (req, res) => {
   try {
     const searchDate = req.query.searchDate || new Date().toISOString().split('T')[0];
@@ -64,6 +66,26 @@ app.get('/api/attendance', async (req, res) => {
       message: '근태 API 호출에 실패하였습니다.',
       error: error.message
     });
+  }
+});
+
+// Korean Public Holidays Proxy Endpoint
+app.get('/api/holidays', async (req, res) => {
+  try {
+    const year = req.query.year || new Date().getFullYear();
+    if (holidayCache[year]) {
+      return res.json({ success: true, year, holidays: holidayCache[year] });
+    }
+
+    const targetUrl = `https://date.nager.at/api/v3/PublicHolidays/${year}/KR`;
+    const response = await axios.get(targetUrl, { timeout: 5000 });
+    const holidays = Array.isArray(response.data) ? response.data : [];
+
+    holidayCache[year] = holidays;
+    res.json({ success: true, year, holidays });
+  } catch (error) {
+    console.error('[Holidays API Error]', error.message);
+    res.json({ success: false, year: req.query.year, holidays: [] });
   }
 });
 

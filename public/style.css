@@ -127,6 +127,30 @@ html.dark .calendar-day-btn:hover:not(.empty-day) {
   background-color: #334155;
 }
 
+/* Day Colors: Sunday Red, Saturday Blue */
+.calendar-day-btn.sunday-day {
+  color: #ef4444 !important;
+}
+.calendar-day-btn.saturday-day {
+  color: #0284c7 !important;
+}
+
+/* Public Holiday Red & Dot Indicator */
+.calendar-day-btn.holiday-day {
+  color: #ef4444 !important;
+  font-weight: 700 !important;
+}
+.calendar-day-btn.holiday-day::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #ef4444;
+}
+
+/* Selected & Today Day Overrides */
 .calendar-day-btn.selected-day {
   background-color: #f59e0b !important;
   color: #ffffff !important;
@@ -134,14 +158,13 @@ html.dark .calendar-day-btn:hover:not(.empty-day) {
   border-color: #d97706 !important;
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
 }
+.calendar-day-btn.selected-day::after {
+  background-color: #ffffff !important;
+}
 
 .calendar-day-btn.today-day:not(.selected-day) {
   border: 2px solid #f59e0b !important;
-  color: #d97706 !important;
   font-weight: 700;
-}
-html.dark .calendar-day-btn.today-day:not(.selected-day) {
-  color: #f59e0b !important;
 }
 
 .calendar-day-btn.empty-day {

@@ -9,6 +9,54 @@ const DEFAULT_EMPLOYEES = [
   { empNo: 'BF202306010', empName: '이유정', cardId: '0425' }
 ];
 
+// Built-in Korean Public Holidays Dataset (2024 - 2026 Fallback)
+const BUILTIN_KR_HOLIDAYS = {
+  // 2026
+  "2026-01-01": "신정",
+  "2026-02-16": "설날 연휴",
+  "2026-02-17": "설날",
+  "2026-02-18": "설날 연휴",
+  "2026-03-01": "삼일절",
+  "2026-03-02": "대체공휴일 (삼일절)",
+  "2026-05-01": "근로자의 날",
+  "2026-05-05": "어린이날",
+  "2026-05-24": "부처님오신날",
+  "2026-05-25": "대체공휴일 (부처님오신날)",
+  "2026-06-03": "지방선거",
+  "2026-06-06": "현충일",
+  "2026-07-17": "제헌절",
+  "2026-08-15": "광복절",
+  "2026-08-17": "대체공휴일 (광복절)",
+  "2026-09-24": "추석 연휴",
+  "2026-09-25": "추석",
+  "2026-09-26": "추석 연휴",
+  "2026-10-03": "개천절",
+  "2026-10-05": "대체공휴일 (개천절)",
+  "2026-10-09": "한글날",
+  "2026-12-25": "성탄절",
+  // 2025
+  "2025-01-01": "신정",
+  "2025-01-28": "설날 연휴",
+  "2025-01-29": "설날",
+  "2025-01-30": "설날 연휴",
+  "2025-03-01": "삼일절",
+  "2025-03-03": "대체공휴일",
+  "2025-05-05": "어린이날 / 부처님오신날",
+  "2025-05-06": "대체공휴일",
+  "2025-06-06": "현충일",
+  "2025-08-15": "광복절",
+  "2025-10-03": "개천절",
+  "2025-10-05": "추석 연휴",
+  "2025-10-06": "추석",
+  "2025-10-07": "추석 연휴",
+  "2025-10-08": "대체공휴일",
+  "2025-10-09": "한글날",
+  "2025-12-25": "성탄절"
+};
+
+// Dynamic Holidays Map
+let krHolidaysMap = { ...BUILTIN_KR_HOLIDAYS };
+
 // App State
 let trackedEmployees = [];
 let todayDateStr = new Date().toISOString().split('T')[0];
@@ -27,10 +75,29 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   loadTrackedEmployees();
   initDateState();
+  fetchYearHolidays(calendarViewDate.getFullYear());
   renderCalendar();
   setupEventListeners();
   fetchAttendance(selectedDate);
 });
+
+// Fetch Public Holidays for Year
+async function fetchYearHolidays(year) {
+  try {
+    const res = await fetch(`/api/holidays?year=${year}`);
+    const data = await res.json();
+    if (data.success && Array.isArray(data.holidays)) {
+      data.holidays.forEach(h => {
+        if (h.date) {
+          krHolidaysMap[h.date] = h.localName || h.name || "공휴일";
+        }
+      });
+      renderCalendar();
+    }
+  } catch (e) {
+    console.warn('Holidays fetch error, using built-in holidays dataset:', e);
+  }
+}
 
 // Theme Management - Defaults to Light Mode
 function initTheme() {
@@ -141,7 +208,7 @@ function initDateState() {
   calendarViewDate = new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
-// Calendar Component Logic
+// Calendar Component Logic (Sunday Red, Saturday Blue, Holiday Red)
 function renderCalendar() {
   const year = calendarViewDate.getFullYear();
   const month = calendarViewDate.getMonth();
@@ -167,12 +234,19 @@ function renderCalendar() {
     const btn = document.createElement('div');
 
     let dayClass = 'calendar-day-btn';
+    const dayOfWeek = new Date(year, month, d).getDay(); // 0=Sunday, 6=Saturday
+    const holidayName = krHolidaysMap[dateStr];
+
+    if (dayOfWeek === 0) dayClass += ' sunday-day';     // Sunday Red
+    if (dayOfWeek === 6) dayClass += ' saturday-day';   // Saturday Blue
+
+    if (holidayName) {
+      dayClass += ' holiday-day';                      // Public Holiday Red & Dot
+      btn.title = `${holidayName} (${dateStr})`;
+    }
+
     if (dateStr === todayDateStr) dayClass += ' today-day';
     if (dateStr === selectedDate) dayClass += ' selected-day';
-
-    const dayOfWeek = new Date(year, month, d).getDay();
-    if (dayOfWeek === 0) dayClass += ' text-rose-500';
-    if (dayOfWeek === 6) dayClass += ' text-sky-500';
 
     btn.className = dayClass;
     btn.textContent = d;
@@ -476,6 +550,7 @@ function setupEventListeners() {
     const parts = todayDateStr.split('-');
     calendarViewDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
     document.getElementById('selectedDateText').textContent = selectedDate;
+    fetchYearHolidays(calendarViewDate.getFullYear());
     renderCalendar();
     fetchAttendance(selectedDate);
   });
@@ -485,12 +560,20 @@ function setupEventListeners() {
   });
 
   document.getElementById('btnPrevMonth').addEventListener('click', () => {
+    const prevYear = calendarViewDate.getFullYear();
     calendarViewDate.setMonth(calendarViewDate.getMonth() - 1);
+    if (calendarViewDate.getFullYear() !== prevYear) {
+      fetchYearHolidays(calendarViewDate.getFullYear());
+    }
     renderCalendar();
   });
 
   document.getElementById('btnNextMonth').addEventListener('click', () => {
+    const prevYear = calendarViewDate.getFullYear();
     calendarViewDate.setMonth(calendarViewDate.getMonth() + 1);
+    if (calendarViewDate.getFullYear() !== prevYear) {
+      fetchYearHolidays(calendarViewDate.getFullYear());
+    }
     renderCalendar();
   });
 
