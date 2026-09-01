@@ -35,10 +35,10 @@
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col transition-colors duration-200">
 
   <!-- Header Banner -->
-  <header class="theme-header border-b sticky top-0 z-30 backdrop-blur-md px-6 py-4 shadow-sm transition-colors">
-    <div class="max-w-[1550px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
+  <header class="theme-header border-b sticky top-0 z-30 backdrop-blur-md px-4 sm:px-6 py-3.5 shadow-sm transition-colors">
+    <div class="max-w-[1550px] mx-auto flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4">
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20 flex-shrink-0">
           <i class="fa-solid fa-id-card-clip text-xl"></i>
         </div>
         <div>
@@ -49,24 +49,25 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
-        <!-- Auth Lock / Unlock Button (Left of Theme Toggle) -->
-        <button id="btnAuthToggle" class="px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white border border-amber-400/30">
+      <!-- Top Header Action Buttons (STRICT SINGLE LINE ON MOBILE) -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-nowrap overflow-x-auto max-w-full w-full md:w-auto pb-1 md:pb-0 scrollbar-none justify-start md:justify-end">
+        <!-- Auth Lock / Unlock Button -->
+        <button id="btnAuthToggle" class="px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white border border-amber-400/30 whitespace-nowrap flex-shrink-0">
           <i class="fa-solid fa-lock text-sm" id="authIcon"></i>
           <span id="authBtnText">인증하기</span>
         </button>
 
         <!-- Dark / Light Mode Toggle Button -->
-        <button id="themeToggleBtn" class="px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 shadow-sm bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-amber-400 border-slate-200 dark:border-slate-600">
+        <button id="themeToggleBtn" class="px-3 py-2 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 shadow-sm bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-amber-400 border-slate-200 dark:border-slate-600 whitespace-nowrap flex-shrink-0">
           <i class="fa-solid fa-sun text-amber-500 text-sm" id="themeIcon"></i>
           <span id="themeText">라이트모드</span>
         </button>
 
-        <button id="btnToday" class="px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 shadow-sm bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600">
+        <button id="btnToday" class="px-3 py-2 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 shadow-sm bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600 whitespace-nowrap flex-shrink-0">
           <i class="fa-solid fa-calendar-day text-amber-500"></i> 오늘로 이동
         </button>
 
-        <button id="btnRefresh" class="px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 shadow-sm bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600">
+        <button id="btnRefresh" class="px-3 py-2 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 shadow-sm bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600 whitespace-nowrap flex-shrink-0">
           <i class="fa-solid fa-arrows-rotate text-emerald-500" id="refreshIcon"></i> 새로고침
         </button>
       </div>
@@ -202,7 +203,7 @@
         </div>
       </div>
 
-      <!-- Top Unlimited Photo Carousel Slider (1-BY-1 SMOOTH INFINITE LOOP CAROUSEL) -->
+      <!-- Top Unlimited Photo Carousel Slider (TOGGLE RESTRICTED ONLY TO CHEVRON ARROW BUTTON) -->
       <div class="theme-card rounded-2xl p-4 shadow-sm relative overflow-hidden group/carousel" id="photoCarouselContainer">
         
         <!-- Carousel Header & Control Buttons -->
