@@ -76,7 +76,7 @@ let selectedEmpFilter = null; // Filter detailed table by cardId
 let searchQuery = '';
 let currentTheme = 'light';
 
-// Top Unlimited Photo Carousel State & Logic
+// Top Unlimited Photo Carousel State & 1-by-1 Smooth Infinite Loop Logic
 const MAX_PHOTO_SIZE_MB = 5;
 const DEFAULT_CAROUSEL_PHOTOS = [
   '/images/dog1.jpg',
@@ -86,7 +86,8 @@ const DEFAULT_CAROUSEL_PHOTOS = [
 ];
 
 let carouselPhotos = [];
-let currentCarouselPage = 0;
+let currentCarouselIndex = 0;
+let isCarouselAnimating = false;
 
 function loadCarouselPhotos() {
   const saved = localStorage.getItem('user_carousel_photos');
@@ -121,74 +122,132 @@ function renderCarousel() {
 
   if (!track) return;
 
-  if (countBadge) countBadge.textContent = `${carouselPhotos.length}장`;
+  const total = carouselPhotos.length;
+  if (countBadge) countBadge.textContent = `${total}장`;
+
+  if (total === 0) {
+    track.innerHTML = '<div class="py-8 text-center text-xs text-slate-400 w-full">등록된 사진이 없습니다.</div>';
+    return;
+  }
 
   const isMobile = window.innerWidth < 640;
-  const pageSize = isMobile ? 2 : 4;
-  const totalPages = Math.ceil(carouselPhotos.length / pageSize) || 1;
+  const visibleCount = isMobile ? 2 : 4;
 
-  if (currentCarouselPage >= totalPages) {
-    currentCarouselPage = totalPages - 1;
+  if (total <= visibleCount) {
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(0)';
+    track.style.width = '100%';
+
+    track.innerHTML = carouselPhotos.map((photoUrl, idx) => `
+      <div class="p-1" style="width: ${100 / visibleCount}%;">
+        <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md">
+          <img src="${photoUrl}" alt="사진 ${idx + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+          <button onclick="deleteCarouselPhoto(${idx})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    if (btnPrev) btnPrev.classList.add('hidden');
+    if (btnNext) btnNext.classList.add('hidden');
+    if (dotsContainer) dotsContainer.classList.add('hidden');
+    return;
   }
-  if (currentCarouselPage < 0) currentCarouselPage = 0;
 
-  const startIndex = currentCarouselPage * pageSize;
-  const pagePhotos = carouselPhotos.slice(startIndex, startIndex + pageSize);
+  if (btnPrev) btnPrev.classList.remove('hidden');
+  if (btnNext) btnNext.classList.remove('hidden');
 
-  track.innerHTML = pagePhotos.map((photoUrl, relativeIdx) => {
-    const actualIdx = startIndex + relativeIdx;
-    return `
+  const renderCount = visibleCount + 1;
+  const itemWidthPercent = 100 / visibleCount;
+  const trackWidthPercent = itemWidthPercent * renderCount;
+
+  track.style.width = `${trackWidthPercent}%`;
+
+  const slideItems = [];
+  for (let i = 0; i < renderCount; i++) {
+    const itemIndex = (currentCarouselIndex + i) % total;
+    slideItems.push({ photoUrl: carouselPhotos[itemIndex], index: itemIndex });
+  }
+
+  track.innerHTML = slideItems.map(item => `
+    <div class="p-1" style="width: ${100 / renderCount}%;">
       <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md">
-        <img src="${photoUrl}" alt="사진 ${actualIdx + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-        
-        <button onclick="deleteCarouselPhoto(${actualIdx})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
+        <img src="${item.photoUrl}" alt="사진 ${item.index + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+        <button onclick="deleteCarouselPhoto(${item.index})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
           <i class="fa-solid fa-trash-can text-xs"></i>
         </button>
       </div>
-    `;
-  }).join('');
+    </div>
+  `).join('');
 
-  // Nav Buttons & Dots Visibility
-  if (totalPages > 1) {
-    if (btnPrev) {
-      btnPrev.classList.remove('hidden');
-      btnPrev.onclick = () => setCarouselPage(currentCarouselPage - 1);
-    }
-    if (btnNext) {
-      btnNext.classList.remove('hidden');
-      btnNext.onclick = () => setCarouselPage(currentCarouselPage + 1);
-    }
-
-    if (dotsContainer) {
-      dotsContainer.classList.remove('hidden');
-      dotsContainer.classList.add('flex');
-      dotsContainer.innerHTML = Array.from({ length: totalPages }).map((_, i) => `
-        <button onclick="setCarouselPage(${i})" class="h-2.5 rounded-full transition-all duration-200 ${
-          i === currentCarouselPage 
-            ? 'bg-amber-500 w-6' 
-            : 'bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 w-2.5'
-        }"></button>
-      `).join('');
-    }
-  } else {
-    if (btnPrev) btnPrev.classList.add('hidden');
-    if (btnNext) btnNext.classList.add('hidden');
-    if (dotsContainer) {
-      dotsContainer.classList.add('hidden');
-      dotsContainer.classList.remove('flex');
-    }
+  if (dotsContainer) {
+    dotsContainer.classList.remove('hidden');
+    dotsContainer.classList.add('flex');
+    dotsContainer.innerHTML = Array.from({ length: total }).map((_, i) => `
+      <button onclick="setCarouselIndexDirect(${i})" class="h-2 rounded-full transition-all duration-200 ${
+        i === (currentCarouselIndex % total)
+          ? 'bg-amber-500 w-5' 
+          : 'bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 w-2'
+      }"></button>
+    `).join('');
   }
 }
 
-window.setCarouselPage = function(page) {
+window.slideNextCarousel = function() {
+  if (isCarouselAnimating) return;
+  const total = carouselPhotos.length;
   const isMobile = window.innerWidth < 640;
-  const pageSize = isMobile ? 2 : 4;
-  const totalPages = Math.ceil(carouselPhotos.length / pageSize) || 1;
+  const visibleCount = isMobile ? 2 : 4;
+  if (total <= visibleCount) return;
 
-  if (page < 0) page = totalPages - 1;
-  if (page >= totalPages) page = 0;
+  isCarouselAnimating = true;
+  const track = document.getElementById('carouselTrack');
+  const renderCount = visibleCount + 1;
+  const shiftPercent = 100 / renderCount;
 
-  currentCarouselPage = page;
+  track.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)';
+  track.style.transform = `translateX(-${shiftPercent}%)`;
+
+  setTimeout(() => {
+    currentCarouselIndex = (currentCarouselIndex + 1) % total;
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(0)';
+    renderCarousel();
+    isCarouselAnimating = false;
+  }, 350);
+};
+
+window.slidePrevCarousel = function() {
+  if (isCarouselAnimating) return;
+  const total = carouselPhotos.length;
+  const isMobile = window.innerWidth < 640;
+  const visibleCount = isMobile ? 2 : 4;
+  if (total <= visibleCount) return;
+
+  isCarouselAnimating = true;
+  const track = document.getElementById('carouselTrack');
+  const renderCount = visibleCount + 1;
+  const shiftPercent = 100 / renderCount;
+
+  currentCarouselIndex = (currentCarouselIndex - 1 + total) % total;
+  track.style.transition = 'none';
+  track.style.transform = `translateX(-${shiftPercent}%)`;
+  renderCarousel();
+
+  void track.offsetWidth; // Force reflow
+
+  track.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)';
+  track.style.transform = 'translateX(0)';
+
+  setTimeout(() => {
+    isCarouselAnimating = false;
+  }, 350);
+};
+
+window.setCarouselIndexDirect = function(index) {
+  if (isCarouselAnimating) return;
+  currentCarouselIndex = index;
   renderCarousel();
 };
 
@@ -199,6 +258,9 @@ window.deleteCarouselPhoto = function(index) {
   }
   if (confirm(`'사진 ${index + 1}'을(를) 갤러리에서 삭제하시겠습니까?`)) {
     carouselPhotos.splice(index, 1);
+    if (currentCarouselIndex >= carouselPhotos.length) {
+      currentCarouselIndex = 0;
+    }
     saveCarouselPhotos();
   }
 };
@@ -206,7 +268,7 @@ window.deleteCarouselPhoto = function(index) {
 window.resetCarouselPhotos = function() {
   if (confirm('포토 갤러리를 초기 4장으로 복원하시겠습니까?')) {
     carouselPhotos = [...DEFAULT_CAROUSEL_PHOTOS];
-    currentCarouselPage = 0;
+    currentCarouselIndex = 0;
     saveCarouselPhotos();
   }
 };
@@ -262,9 +324,6 @@ window.handleCarouselUpload = function(event) {
 
         processedCount++;
         if (processedCount === validFiles.length) {
-          const isMobile = window.innerWidth < 640;
-          const pageSize = isMobile ? 2 : 4;
-          currentCarouselPage = Math.ceil(carouselPhotos.length / pageSize) - 1;
           saveCarouselPhotos();
         }
       };

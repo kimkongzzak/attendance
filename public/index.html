@@ -202,7 +202,7 @@
         </div>
       </div>
 
-      <!-- Top Unlimited Photo Carousel Slider (TOGGLE RESTRICTED ONLY TO CHEVRON ARROW BUTTON) -->
+      <!-- Top Unlimited Photo Carousel Slider (1-BY-1 SMOOTH INFINITE LOOP CAROUSEL) -->
       <div class="theme-card rounded-2xl p-4 shadow-sm relative overflow-hidden group/carousel" id="photoCarouselContainer">
         
         <!-- Carousel Header & Control Buttons -->
@@ -231,16 +231,16 @@
         <div id="carouselBody">
           <!-- Viewport & Slider Grid -->
           <div class="relative overflow-hidden rounded-xl">
-            <!-- Slide Track -->
-            <div id="carouselTrack" class="grid grid-cols-2 sm:grid-cols-4 gap-4 transition-all duration-300">
+            <!-- Slide Track (Flex Track for 1-by-1 Smooth Infinite Loop) -->
+            <div id="carouselTrack" class="flex transition-transform duration-300 ease-out">
               <!-- Rendered via JS -->
             </div>
 
-            <!-- Prev/Next Controls (visible when pages > 1) -->
-            <button id="btnPrevCarousel" class="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/75 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-lg backdrop-blur-md hidden z-10">
+            <!-- Prev/Next Controls (visible when count > 4) -->
+            <button id="btnPrevCarousel" onclick="slidePrevCarousel()" title="이전 사진" class="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/75 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-lg backdrop-blur-md hidden z-10">
               <i class="fa-solid fa-chevron-left text-xs"></i>
             </button>
-            <button id="btnNextCarousel" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/75 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-lg backdrop-blur-md hidden z-10">
+            <button id="btnNextCarousel" onclick="slideNextCarousel()" title="다음 사진" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/75 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-lg backdrop-blur-md hidden z-10">
               <i class="fa-solid fa-chevron-right text-xs"></i>
             </button>
           </div>
