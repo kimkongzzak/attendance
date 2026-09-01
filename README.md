@@ -49,12 +49,34 @@
 
 ---
 
+## 💡 기술 스택 선정 이유 (Tech Stack Rationale)
+
+1. **백엔드: Node.js + Express (`server.js` & `api/attendance.js`)**
+   - **CORS 및 보안 헤더 연동 (Proxy Server)**: 외부 근태 API 호출 시 발생할 수 있는 브라우저 CORS 정책 제한이나 보안 헤더(`code`, `key`) 노출 문제를 해결하기 위해 서버 측 프록시 환경을 구축하였습니다.
+   - **Vercel 서버리스 호환**: Express 라우팅 구조를 Vercel Serverless Function (`api/attendance.js`)과 1:1 매핑하여 별도의 서버 인프라 관리 없이 클릭 한 번으로 배포할 수 있습니다.
+
+2. **프론트엔드: Vanilla JavaScript (ES6+)**
+   - **Zero Build Overhead**: 무거운 프레임워크나 빌드 과정(Webpack, Vite) 없이 순수 JS로 구현하여 페이지 진입 및 데이터 렌더링 속도가 극도로 빠릅니다.
+   - **직관적인 동적 상태 관리**: 날짜 선택, 관리대상 임직원 동적 추가/삭제, 검색어 필터링, 테마 전환 등 대시보드 상태를 브라우저 메모리상에서 즉각적으로 연산하여 반응합니다.
+
+3. **스타일링: Tailwind CSS + CSS Custom Variables (Theme)**
+   - **유연한 대시보드 레이아웃**: Tailwind의 Grid 시스템(`grid-cols-12`)을 활용해 좌측 관리 패널(25%)과 우측 대시보드 표 영역(75%)을 최적의 비율로 배치하였습니다.
+   - **스무스한 테마 전환**: CSS 변수(`--bg-primary`, `--bg-card`, `--text-main`)를 활용해 DOM 재렌더링 없이 라이트/다크 테마 전환이 매끄럽게 동작합니다.
+
+4. **데이터 저장소: Browser `localStorage`**
+   - **별도 DB 구축 없는 유저 데이터 보관**: 사용자가 추가/삭제한 임직원 목록과 선택한 테마 설정이 브라우저 `localStorage`에 자동 저장되어 페이지를 새로고침하거나 재방문해도 영구 유지됩니다.
+
+---
+
 ## 📂 프로젝트 구조 (Project Structure)
 
 ```
 attendance/
 ├── api/
-│   └── attendance.js       # Vercel 서버리스 API 프록시 핸들러
+│   ├── attendance.js       # Vercel 서버리스 API 프록시 핸들러
+│   ├── holidays.js         # 공휴일 API 서버리스 프록시
+│   ├── img-proxy.js        # 식단 이미지 고속 서버리스 프록시
+│   └── meal.js             # 식단 API 서버리스 프록시
 ├── public/
 │   ├── index.html          # 메인 대시보드 HTML 레이아웃
 │   ├── app.js              # 프론트엔드 상태 관리, 이벤트 & API 연동 로직
@@ -98,27 +120,6 @@ npm start
 
 ---
 
-## 💡 기술 스택 선정 이유 (Tech Stack Rationale)
-
-1. **백엔드: Node.js + Express (`server.js` & `api/attendance.js`)**
-   - **CORS 및 보안 헤더 연동 (Proxy Server)**: 외부 근태 API 호출 시 발생할 수 있는 브라우저 CORS 정책 제한이나 보안 헤더(`code`, `key`) 노출 문제를 해결하기 위해 서버 측 프록시 환경을 구축하였습니다.
-   - **Vercel 서버리스 호환**: Express 라우팅 구조를 Vercel Serverless Function (`api/attendance.js`)과 1:1 매핑하여 별도의 서버 인프라 관리 없이 클릭 한 번으로 배포할 수 있습니다.
-
-2. **프론트엔드: Vanilla JavaScript (ES6+)**
-   - **Zero Build Overhead**: 무거운 프레임워크나 빌드 과정(Webpack, Vite) 없이 순수 JS로 구현하여 페이지 진입 및 데이터 렌더링 속도가 극도로 빠릅니다.
-   - **직관적인 동적 상태 관리**: 날짜 선택, 관리대상 임직원 동적 추가/삭제, 검색어 필터링, 테마 전환 등 대시보드 상태를 브라우저 메모리상에서 즉각적으로 연산하여 반응합니다.
-
-3. **스타일링: Tailwind CSS + CSS Custom Variables (Theme)**
-   - **유연한 대시보드 레이아웃**: Tailwind의 Grid 시스템(`grid-cols-12`)을 활용해 좌측 관리 패널(25%)과 우측 대시보드 표 영역(75%)을 최적의 비율로 배치하였습니다.
-   - **스무스한 테마 전환**: CSS 변수(`--bg-primary`, `--bg-card`, `--text-main`)를 활용해 DOM 재렌더링 없이 라이트/다크 테마 전환이 매끄럽게 동작합니다.
-
-4. **데이터 저장소: Browser `localStorage`**
-   - **별도 DB 구축 없는 유저 데이터 보관**: 사용자가 추가/삭제한 임직원 목록과 선택한 테마 설정이 브라우저 `localStorage`에 자동 저장되어 페이지를 새로고침하거나 재방문해도 영구 유지됩니다.
-
----
-
 ## 📜 라이선스 (License)
 
 Copyright © 2026 Daily Attendance Service. All rights reserved.
-
-
