@@ -296,7 +296,7 @@ window.handleCarouselUpload = function(event) {
     reader.onload = function(e) {
       const rawDataUrl = e.target.result;
       const img = new Image();
-      img.onload = function() {
+      img.onload = async function() {
         const canvas = document.createElement('canvas');
         const maxDim = 800;
         let width = img.width;
@@ -320,7 +320,24 @@ window.handleCarouselUpload = function(event) {
         ctx.drawImage(img, 0, 0, width, height);
 
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        carouselPhotos.push(compressedDataUrl);
+
+        // Upload photo to backend (saves to public/images/ & auto-commits to GitHub repository!)
+        try {
+          const res = await fetch('/api/upload-photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: compressedDataUrl, fileName: file.name })
+          });
+          const uploadRes = await res.json();
+          if (uploadRes.success && uploadRes.url) {
+            carouselPhotos.push(uploadRes.url);
+          } else {
+            carouselPhotos.push(compressedDataUrl);
+          }
+        } catch (uploadErr) {
+          console.warn('[Upload Server Warning]', uploadErr);
+          carouselPhotos.push(compressedDataUrl);
+        }
 
         processedCount++;
         if (processedCount === validFiles.length) {

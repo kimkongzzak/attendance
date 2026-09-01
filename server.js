@@ -4,12 +4,66 @@ const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
 
+const fs = require('fs');
+const exec = require('child_process').exec;
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// GitHub Repository Photo Upload Endpoint (Saves to public/images/ & Auto-commits to GitHub)
+app.post('/api/upload-photo', (req, res) => {
+  try {
+    const { imageBase64, fileName } = req.body || {};
+    if (!imageBase64) {
+      return res.status(400).json({ success: false, message: '이미지 데이터가 전달되지 않았습니다.' });
+    }
+
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop().toLowerCase() : 'jpg';
+    const uniqueName = `gallery_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
+    const imagesDir = path.join(__dirname, 'public', 'images');
+
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+
+    const targetPath = path.join(imagesDir, uniqueName);
+    fs.writeFileSync(targetPath, buffer);
+
+    const publicUrl = `/images/${uniqueName}`;
+
+    // Auto Git Commit & Push directly to GitHub remote repository!
+    const gitCmd = `git add public/images/${uniqueName} && git commit -m "feat: Upload photo ${uniqueName} to GitHub repository gallery" && git push origin main`;
+    exec(gitCmd, { cwd: __dirname }, (error, stdout, stderr) => {
+      if (error) {
+        console.warn('[GitHub Auto-Push Notice]', error.message);
+      } else {
+        console.log('[GitHub Auto-Push Success]', stdout.trim());
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: '사진이 깃허브(GitHub) 리포지토리에 저장 및 자동 푸시되었습니다!',
+      url: publicUrl,
+      fileName: uniqueName
+    });
+  } catch (err) {
+    console.error('[Photo Upload Error]', err.message);
+    return res.status(500).json({
+      success: false,
+      message: '사진 저장 실패',
+      error: err.message
+    });
+  }
+});
 
 // Default Target Employees Fallback
 const DEFAULT_TARGET_EMPLOYEES = [
