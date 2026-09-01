@@ -214,7 +214,7 @@ html.dark .summary-row-selected {
   opacity: 0.3;
 }
 
-/* Lock Overlay Notice Aligned with Protected Tables Section */
+/* Fixed Top-Aligned Lock Overlay Notice to Prevent Layout Jumps when API Data Loads */
 .auth-lock-overlay {
   position: absolute;
   inset: 0;
@@ -222,13 +222,15 @@ html.dark .summary-row-selected {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: 3.5rem;
   background-color: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(8px);
   border-radius: 1rem;
   color: #ffffff;
   text-align: center;
-  padding: 2rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
   transition: all 0.3s ease;
 }
 
