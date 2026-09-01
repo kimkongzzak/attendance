@@ -264,10 +264,13 @@ html.light .auth-lock-overlay {
   border: 1.5px solid #ef4444 !important;
 }
 
-/* Strict Mobile Single-Line No-Wrap Enforcement for Tables & Lists */
+/* Strict Mobile Single-Line No-Wrap Enforcement for Tables & Header Buttons */
 table th,
 table td,
 .theme-table-row td,
-#trackedEmployeesList * {
+#trackedEmployeesList *,
+header button,
+header button * {
   white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }

@@ -402,7 +402,7 @@ function updateAuthUI(authenticated, expiresAt = null) {
     if (authBtnText) authBtnText.textContent = '인증완료';
     if (authIcon) authIcon.className = 'fa-solid fa-lock-open text-sm';
     if (btnAuthToggle) {
-      btnAuthToggle.className = 'px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500/30';
+      btnAuthToggle.className = 'px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500/30 whitespace-nowrap flex-shrink-0';
     }
   } else {
     // Blur sensitive areas (Only Calendar & Meal Menu remain visible)
@@ -413,7 +413,7 @@ function updateAuthUI(authenticated, expiresAt = null) {
     if (authBtnText) authBtnText.textContent = '인증하기';
     if (authIcon) authIcon.className = 'fa-solid fa-lock text-sm';
     if (btnAuthToggle) {
-      btnAuthToggle.className = 'px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white border border-amber-400/30';
+      btnAuthToggle.className = 'px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white border border-amber-400/30 whitespace-nowrap flex-shrink-0';
     }
   }
 }
