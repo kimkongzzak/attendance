@@ -62,10 +62,30 @@ app.get('/api/attendance', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('[API Proxy Error]', error.message);
-    res.status(500).json({
+    const apiCode = process.env.ATTENDANCE_API_CODE || process.env.CODE || process.env.code || '';
+    const apiKey = process.env.ATTENDANCE_API_KEY || process.env.KEY || process.env.key || '';
+
+    const hasKeys = Boolean(apiCode && apiKey);
+    const status = error.response ? error.response.status : 500;
+    const statusText = error.response ? error.response.statusText : 'NETWORK_ERROR';
+    const detailMsg = error.response && error.response.data ? (typeof error.response.data === 'object' ? JSON.stringify(error.response.data) : String(error.response.data)) : error.message;
+
+    let hint = '';
+    if (!hasKeys) {
+      hint = '로컬 환경에 .env 파일이 없거나 ATTENDANCE_API_CODE 및 ATTENDANCE_API_KEY 환경변수가 설정되지 않았습니다.';
+    } else {
+      hint = `외부 근태 API 응답 오류입니다 (HTTP ${status} ${statusText}). API 키/코드 값을 확인하세요.`;
+    }
+
+    res.status(status >= 400 && status < 600 ? status : 500).json({
       success: false,
       message: '근태 API 호출에 실패하였습니다.',
-      error: error.message
+      status,
+      statusText,
+      error: error.message,
+      detailMsg,
+      hasKeys,
+      hint
     });
   }
 });

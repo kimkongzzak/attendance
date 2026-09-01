@@ -667,7 +667,38 @@ function renderCalendar() {
   }
 }
 
-// Fetch Attendance API via Proxy with Full Loading Overlay
+// Trigger Red Flash Animation & Display Error Alert Banner on empSummaryCard
+function handleApiErrorUI(errorInfo) {
+  const summaryCard = document.getElementById('empSummaryCard');
+  const alertBanner = document.getElementById('apiErrorAlertBanner');
+  const errorCode = document.getElementById('apiErrorCode');
+  const errorReason = document.getElementById('apiErrorReasonText');
+  const errorHint = document.getElementById('apiErrorHintText');
+
+  if (summaryCard) {
+    summaryCard.classList.remove('api-error-flash');
+    void summaryCard.offsetWidth; // Trigger reflow for animation restart
+    summaryCard.classList.add('api-error-flash');
+    setTimeout(() => {
+      summaryCard.classList.remove('api-error-flash');
+    }, 2800);
+  }
+
+  if (alertBanner) {
+    if (errorCode) errorCode.textContent = `HTTP ${errorInfo.status || 500} ${errorInfo.statusText || 'ERROR'}`;
+    if (errorReason) errorReason.textContent = errorInfo.detailMsg || errorInfo.error || errorInfo.message || '근태 API 수신 중 오류가 발생하였습니다.';
+    if (errorHint) errorHint.textContent = `힌트: ${errorInfo.hint || '.env 파일에 ATTENDANCE_API_CODE 및 ATTENDANCE_API_KEY 환경변수 설정을 확인하세요.'}`;
+
+    alertBanner.classList.remove('hidden');
+  }
+}
+
+function clearApiErrorUI() {
+  const alertBanner = document.getElementById('apiErrorAlertBanner');
+  if (alertBanner) alertBanner.classList.add('hidden');
+}
+
+// Fetch Attendance API via Proxy with Full Loading Overlay & Failure Visual Feedback
 async function fetchAttendance(dateStr) {
   const loadingOverlay = document.getElementById('dashboardLoadingOverlay');
   const loadingTitle = document.getElementById('loadingOverlayTitle');
@@ -689,19 +720,28 @@ async function fetchAttendance(dateStr) {
   tableContainer.classList.add('hidden');
   if (refreshIcon) refreshIcon.classList.add('fa-spin');
 
+  clearApiErrorUI();
+
   try {
     const response = await fetch(`/api/attendance?searchDate=${dateStr}`);
     const data = await response.json();
 
-    if (data.success) {
+    if (response.ok && data.success) {
       rawApiResponse = data;
       processAndRenderData(data);
     } else {
-      alert(`근태 데이터를 가져오지 못했습니다: ${data.message}`);
+      handleApiErrorUI(data);
     }
   } catch (err) {
     console.error('Fetch error:', err);
-    alert('서버 연결 중 오류가 발생하였습니다.');
+    handleApiErrorUI({
+      status: 500,
+      statusText: 'FETCH_ERROR',
+      message: '서버 통신 실패',
+      error: err.message,
+      detailMsg: '로컬 서버(node server.js)가 실행 중인지, 네트워크 상태가 정상인지 확인해주세요.',
+      hint: '로컬 환경(.env)에 ATTENDANCE_API_CODE 및 ATTENDANCE_API_KEY가 설정되었는지 점검해보세요.'
+    });
   } finally {
     if (loadingOverlay) {
       loadingOverlay.classList.add('hidden');

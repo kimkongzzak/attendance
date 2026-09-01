@@ -238,3 +238,28 @@ html.light .auth-lock-overlay {
   background-color: rgba(248, 250, 252, 0.75);
   color: #0f172a;
 }
+
+/* 2~3 Second Red Gradient Flash Animation for API Error */
+@keyframes errorRedFlash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+  25% {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(225, 29, 72, 0.45) 100%) !important;
+    box-shadow: 0 0 30px 8px rgba(239, 68, 68, 0.5) !important;
+    border-color: #ef4444 !important;
+  }
+  60% {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(225, 29, 72, 0.3) 100%) !important;
+    box-shadow: 0 0 20px 4px rgba(239, 68, 68, 0.3) !important;
+    border-color: #ef4444 !important;
+  }
+  100% {
+    box-shadow: var(--shadow-card);
+  }
+}
+
+.api-error-flash {
+  animation: errorRedFlash 2.8s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid #ef4444 !important;
+}
