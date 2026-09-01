@@ -98,12 +98,6 @@ npm start
 
 ---
 
-## 📜 라이선스 (License)
-
-Copyright © 2026 Daily Attendance Service. All rights reserved.
-
----
-
 ## 💡 기술 스택 선정 이유 (Tech Stack Rationale)
 
 1. **백엔드: Node.js + Express (`server.js` & `api/attendance.js`)**
@@ -120,4 +114,11 @@ Copyright © 2026 Daily Attendance Service. All rights reserved.
 
 4. **데이터 저장소: Browser `localStorage`**
    - **별도 DB 구축 없는 유저 데이터 보관**: 사용자가 추가/삭제한 임직원 목록과 선택한 테마 설정이 브라우저 `localStorage`에 자동 저장되어 페이지를 새로고침하거나 재방문해도 영구 유지됩니다.
+
+---
+
+## 📜 라이선스 (License)
+
+Copyright © 2026 Daily Attendance Service. All rights reserved.
+
 
