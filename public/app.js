@@ -121,7 +121,7 @@ function updateAuthUI(authenticated, expiresAt = null) {
     if (dashboardRightPanel) dashboardRightPanel.classList.remove('content-locked');
     if (rightPanelLockOverlay) rightPanelLockOverlay.classList.add('hidden');
 
-    if (authBtnText) authBtnText.textContent = '🔓 인증완료';
+    if (authBtnText) authBtnText.textContent = '인증완료';
     if (authIcon) authIcon.className = 'fa-solid fa-lock-open text-sm';
     if (btnAuthToggle) {
       btnAuthToggle.className = 'px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500/30';
@@ -132,7 +132,7 @@ function updateAuthUI(authenticated, expiresAt = null) {
     if (dashboardRightPanel) dashboardRightPanel.classList.add('content-locked');
     if (rightPanelLockOverlay) rightPanelLockOverlay.classList.remove('hidden');
 
-    if (authBtnText) authBtnText.textContent = '🔒 인증하기';
+    if (authBtnText) authBtnText.textContent = '인증하기';
     if (authIcon) authIcon.className = 'fa-solid fa-lock text-sm';
     if (btnAuthToggle) {
       btnAuthToggle.className = 'px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white border border-amber-400/30';
@@ -538,11 +538,6 @@ function processAndRenderData(data) {
   renderDashboardStats(data);
   renderEmpSummaryDBTable();
   renderDetailedTable();
-
-  // JSON Modal Content
-  document.getElementById('jsonModalDate').textContent = data.searchDate;
-  document.getElementById('jsonModalStats').textContent = `필터링: ${filteredLogs.length}건 / 전체: ${data.totalRawRecords || rawList.length}건`;
-  document.getElementById('jsonContent').textContent = JSON.stringify(data.rawData || data, null, 2);
 }
 
 // Render Top KPI Stats
@@ -725,7 +720,7 @@ function renderDetailedTable() {
 
 // Event Listeners Setup
 function setupEventListeners() {
-  // Auth Lock / Unlock Button Handler
+  // Auth Lock / Unlock Button Handler (Left of Theme Toggle)
   document.getElementById('btnAuthToggle').addEventListener('click', () => {
     if (isAuthenticated) {
       if (confirm('인증 상태를 해제하고 화면을 잠그시겠습니까?')) {
@@ -917,31 +912,6 @@ function setupEventListeners() {
       trackedEmployees = [...DEFAULT_EMPLOYEES];
       saveTrackedEmployees();
     }
-  });
-
-  // Raw JSON Modal
-  const jsonModal = document.getElementById('jsonModal');
-  document.getElementById('btnViewRawJson').addEventListener('click', () => {
-    if (!isAuthenticated) {
-      openAuthModal();
-      return;
-    }
-    jsonModal.classList.remove('hidden');
-  });
-  document.getElementById('btnCloseJsonModal').addEventListener('click', () => {
-    jsonModal.classList.add('hidden');
-  });
-  jsonModal.addEventListener('click', (e) => {
-    if (e.target === jsonModal) jsonModal.classList.add('hidden');
-  });
-
-  document.getElementById('btnCopyJson').addEventListener('click', () => {
-    const jsonText = document.getElementById('jsonContent').textContent;
-    navigator.clipboard.writeText(jsonText).then(() => {
-      alert('JSON 데이터가 클립보드에 복사되었습니다.');
-    }).catch(err => {
-      console.error('Copy error:', err);
-    });
   });
 
   // Check auth session every 1 minute for automatic 2-hour expiration
