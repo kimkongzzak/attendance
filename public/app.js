@@ -100,7 +100,7 @@ async function fetchYearHolidays(year) {
   }
 }
 
-// Fetch Daily Meal Menu from Proxy API (Unboxed minimalist view & proxy image fallback)
+// Fetch Daily Meal Menu from Proxy API (Instant direct loading with proxy fallback & caching)
 async function fetchMealMenu(dateStr) {
   const container = document.getElementById('mealMenuContainer');
   const dateText = document.getElementById('mealDateText');
@@ -151,14 +151,20 @@ async function fetchMealMenu(dateStr) {
           const directImgUrl = `https://t.bodyfriend.co.kr${firstImg.imgSrc}`;
           const proxyImgUrl = `/api/img-proxy?url=${encodeURIComponent(directImgUrl)}`;
 
+          // Preload image in background immediately for instant load
+          const preloader = new Image();
+          preloader.src = directImgUrl;
+
           imageMarkup = `
-            <div class="mt-2 group relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/60 shadow-sm">
-              <a href="${proxyImgUrl}" target="_blank" rel="noopener noreferrer" class="block relative bg-slate-100 dark:bg-slate-900">
-                <img src="${proxyImgUrl}" 
+            <div class="mt-2 group relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/60 shadow-sm bg-slate-100 dark:bg-slate-800 min-h-[160px]">
+              <a href="${directImgUrl}" target="_blank" rel="noopener noreferrer" class="block relative w-full h-full">
+                <img src="${directImgUrl}" 
                      referrerpolicy="no-referrer" 
+                     loading="eager"
+                     decoding="async"
                      alt="식단 이미지" 
-                     class="w-full h-44 object-cover transition-transform duration-200 group-hover:scale-105" 
-                     onerror="if (!this.dataset.fallback) { this.dataset.fallback='1'; this.src='${directImgUrl}'; } else { this.parentElement.parentElement.innerHTML='<div class=\'py-1 text-xs text-slate-500\'>🍽️ 이미지가 등록되지 않았습니다</div>'; }">
+                     class="w-full h-44 object-cover transition-all duration-200 group-hover:scale-105" 
+                     onerror="if (!this.dataset.triedProxy) { this.dataset.triedProxy='1'; this.src='${proxyImgUrl}'; } else { this.parentElement.parentElement.innerHTML='<div class=\'py-1 text-xs text-slate-500\'>🍽️ 이미지가 등록되지 않았습니다</div>'; }">
                 <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
                   <i class="fa-solid fa-up-right-from-square text-xs"></i> 원본 이미지 보기
                 </div>

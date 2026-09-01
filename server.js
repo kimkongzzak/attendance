@@ -22,8 +22,9 @@ const DEFAULT_TARGET_EMPLOYEES = [
   { empNo: 'BF202306010', empName: '이유정', cardId: '0425' }
 ];
 
-// In-memory cache for holidays
+// In-memory cache for holidays & meal images
 const holidayCache = {};
+const imgCache = {};
 
 // Attendance API Core Handler
 async function handleAttendanceFetch(searchDate) {
@@ -95,9 +96,7 @@ app.get('/api/meal', async (req, res) => {
     const searchDate = req.query.searchDate || new Date().toISOString().split('T')[0];
     const targetUrl = `https://t.bodyfriend.co.kr/restaurant/api/CarteListByDate.json?startDate=${searchDate}&endDate=${searchDate}`;
 
-    console.log(`[Meal API Proxy] Fetching meal menu for date: ${searchDate}`);
     const response = await axios.get(targetUrl, { timeout: 5000 });
-
     res.json({
       success: true,
       searchDate,
@@ -114,11 +113,18 @@ app.get('/api/meal', async (req, res) => {
   }
 });
 
-// Image Proxy Endpoint
+// High-performance Image Proxy Endpoint with Caching
 app.get('/api/img-proxy', async (req, res) => {
   try {
     const imgUrl = req.query.url;
     if (!imgUrl) return res.status(400).send('Missing url parameter');
+
+    // Return from in-memory cache if available
+    if (imgCache[imgUrl]) {
+      res.setHeader('Content-Type', imgCache[imgUrl].contentType);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.send(imgCache[imgUrl].buffer);
+    }
 
     const response = await axios.get(imgUrl, {
       responseType: 'arraybuffer',
@@ -128,9 +134,18 @@ app.get('/api/img-proxy', async (req, res) => {
       timeout: 8000
     });
 
-    res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.send(response.data);
+    const contentType = response.headers['content-type'] || 'image/jpeg';
+    const buffer = Buffer.from(response.data);
+
+    // Cache in memory (up to 50 images)
+    if (Object.keys(imgCache).length > 50) {
+      delete imgCache[Object.keys(imgCache)[0]];
+    }
+    imgCache[imgUrl] = { contentType, buffer };
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(buffer);
   } catch (error) {
     console.error('[Image Proxy Error]', error.message);
     res.status(500).send('Image fetch failed');
