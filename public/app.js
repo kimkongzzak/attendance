@@ -684,13 +684,20 @@ function handleApiErrorUI(errorInfo) {
     }, 2800);
   }
 
+  const detailMsg = errorInfo.detailMsg || errorInfo.error || errorInfo.message || '근태 API 수신 중 오류가 발생하였습니다.';
+  const hintMsg = errorInfo.hint || '.env 파일에 ATTENDANCE_API_CODE 및 ATTENDANCE_API_KEY 환경변수 설정을 확인하세요.';
+
   if (alertBanner) {
     if (errorCode) errorCode.textContent = `HTTP ${errorInfo.status || 500} ${errorInfo.statusText || 'ERROR'}`;
-    if (errorReason) errorReason.textContent = errorInfo.detailMsg || errorInfo.error || errorInfo.message || '근태 API 수신 중 오류가 발생하였습니다.';
-    if (errorHint) errorHint.textContent = `힌트: ${errorInfo.hint || '.env 파일에 ATTENDANCE_API_CODE 및 ATTENDANCE_API_KEY 환경변수 설정을 확인하세요.'}`;
+    if (errorReason) errorReason.textContent = detailMsg;
+    if (errorHint) errorHint.textContent = `힌트: ${hintMsg}`;
 
     alertBanner.classList.remove('hidden');
+    alertBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+
+  // Pop up explicit browser alert dialog
+  alert(`⚠️ [근태 API 연동 실패 (HTTP ${errorInfo.status || 500})]\n\n- 상세 사유: ${detailMsg}\n- 힌트: ${hintMsg}`);
 }
 
 function clearApiErrorUI() {
