@@ -114,6 +114,29 @@ app.get('/api/meal', async (req, res) => {
   }
 });
 
+// Image Proxy Endpoint
+app.get('/api/img-proxy', async (req, res) => {
+  try {
+    const imgUrl = req.query.url;
+    if (!imgUrl) return res.status(400).send('Missing url parameter');
+
+    const response = await axios.get(imgUrl, {
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      },
+      timeout: 8000
+    });
+
+    res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(response.data);
+  } catch (error) {
+    console.error('[Image Proxy Error]', error.message);
+    res.status(500).send('Image fetch failed');
+  }
+});
+
 // Serve frontend for all other routes
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

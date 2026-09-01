@@ -100,7 +100,7 @@ async function fetchYearHolidays(year) {
   }
 }
 
-// Fetch Daily Meal Menu from Proxy API
+// Fetch Daily Meal Menu from Proxy API (Unboxed minimalist view & proxy image fallback)
 async function fetchMealMenu(dateStr) {
   const container = document.getElementById('mealMenuContainer');
   const dateText = document.getElementById('mealDateText');
@@ -109,7 +109,7 @@ async function fetchMealMenu(dateStr) {
   if (!container) return;
 
   container.innerHTML = `
-    <div class="py-3 text-center text-slate-400 text-xs">
+    <div class="py-2 text-center text-slate-400 text-xs">
       <i class="fa-solid fa-spinner fa-spin mr-1"></i> 식단 불러오는 중...
     </div>
   `;
@@ -122,8 +122,8 @@ async function fetchMealMenu(dateStr) {
 
     if (resultData.length === 0) {
       container.innerHTML = `
-        <div class="p-3 text-center rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 text-xs">
-          🍽️ 등록된 식단 정보가 없습니다.
+        <div class="py-2 text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1.5">
+          <span>🍽️ 등록된 식단 정보가 없습니다.</span>
         </div>
       `;
       return;
@@ -140,7 +140,7 @@ async function fetchMealMenu(dateStr) {
       const contentText = meal.content || '식단 내용이 없습니다.';
 
       let imageMarkup = `
-        <div class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-200 dark:border-slate-700/40 flex items-center gap-1.5">
+        <div class="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
           <span>🍽️ 이미지가 등록되지 않았습니다</span>
         </div>
       `;
@@ -148,12 +148,17 @@ async function fetchMealMenu(dateStr) {
       if (meal.imgList && Array.isArray(meal.imgList) && meal.imgList.length > 0) {
         const firstImg = meal.imgList[0];
         if (firstImg && firstImg.imgSrc) {
-          const fullImgUrl = `https://t.bodyfriend.co.kr${firstImg.imgSrc}`;
+          const directImgUrl = `https://t.bodyfriend.co.kr${firstImg.imgSrc}`;
+          const proxyImgUrl = `/api/img-proxy?url=${encodeURIComponent(directImgUrl)}`;
+
           imageMarkup = `
-            <div class="mt-2 group relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-              <a href="${fullImgUrl}" target="_blank" rel="noopener noreferrer" class="block relative">
-                <img src="${fullImgUrl}" alt="식단 이미지" class="w-full h-36 object-cover transition-transform duration-200 group-hover:scale-105" 
-                  onerror="this.onerror=null; this.parentElement.parentElement.innerHTML='<div class=\'p-2 text-[11px] text-slate-500 bg-slate-100 dark:bg-slate-900 rounded\'>🍽️ 이미지가 등록되지 않았습니다</div>';">
+            <div class="mt-2 group relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/60 shadow-sm">
+              <a href="${proxyImgUrl}" target="_blank" rel="noopener noreferrer" class="block relative bg-slate-100 dark:bg-slate-900">
+                <img src="${proxyImgUrl}" 
+                     referrerpolicy="no-referrer" 
+                     alt="식단 이미지" 
+                     class="w-full h-44 object-cover transition-transform duration-200 group-hover:scale-105" 
+                     onerror="if (!this.dataset.fallback) { this.dataset.fallback='1'; this.src='${directImgUrl}'; } else { this.parentElement.parentElement.innerHTML='<div class=\'py-1 text-xs text-slate-500\'>🍽️ 이미지가 등록되지 않았습니다</div>'; }">
                 <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
                   <i class="fa-solid fa-up-right-from-square text-xs"></i> 원본 이미지 보기
                 </div>
@@ -164,7 +169,7 @@ async function fetchMealMenu(dateStr) {
       }
 
       return `
-        <div class="p-3 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 space-y-2">
+        <div class="space-y-1.5 pb-3 border-b border-slate-200/60 dark:border-slate-800/60 last:border-b-0 last:pb-0">
           <div class="flex items-center justify-between">
             <span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-[11px]">
               ${typeBadge}
@@ -183,8 +188,8 @@ async function fetchMealMenu(dateStr) {
   } catch (err) {
     console.error('Meal fetch error:', err);
     container.innerHTML = `
-      <div class="p-3 text-center rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 text-xs">
-        🍽️ 식단 정보를 불러오는 중 오류가 발생했습니다.
+      <div class="py-2 text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1.5">
+        <span>🍽️ 식단 정보를 불러오는 중 오류가 발생했습니다.</span>
       </div>
     `;
   }
@@ -325,7 +330,7 @@ function renderCalendar() {
     const btn = document.createElement('div');
 
     let dayClass = 'calendar-day-btn';
-    const dayOfWeek = new Date(year, month, d).getDay(); // 0=Sunday, 6=Saturday
+    const dayOfWeek = new Date(year, month, d).getDay();
     const holidayName = krHolidaysMap[dateStr];
 
     if (dayOfWeek === 0) dayClass += ' sunday-day';     // Sunday Red
@@ -631,12 +636,52 @@ function renderDetailedTable() {
   }).join('');
 }
 
-// Event Listeners Setup
+// Event Listeners Setup (Collapsible toggles for Calendar & Meal)
 function setupEventListeners() {
+  // Calendar Collapsible Toggle
+  const calendarHeaderToggle = document.getElementById('calendarHeaderToggle');
+  const calendarBody = document.getElementById('calendarBody');
+  const calendarChevron = document.getElementById('calendarChevron');
+  let isCalendarCollapsed = false;
+
+  if (calendarHeaderToggle && calendarBody) {
+    calendarHeaderToggle.addEventListener('click', () => {
+      isCalendarCollapsed = !isCalendarCollapsed;
+      if (isCalendarCollapsed) {
+        calendarBody.classList.add('hidden');
+        if (calendarChevron) calendarChevron.style.transform = 'rotate(180deg)';
+      } else {
+        calendarBody.classList.remove('hidden');
+        if (calendarChevron) calendarChevron.style.transform = 'rotate(0deg)';
+      }
+    });
+  }
+
+  // Meal Card Collapsible Toggle
+  const mealHeaderToggle = document.getElementById('mealHeaderToggle');
+  const mealBody = document.getElementById('mealBody');
+  const mealChevron = document.getElementById('mealChevron');
+  let isMealCollapsed = false;
+
+  if (mealHeaderToggle && mealBody) {
+    mealHeaderToggle.addEventListener('click', () => {
+      isMealCollapsed = !isMealCollapsed;
+      if (isMealCollapsed) {
+        mealBody.classList.add('hidden');
+        if (mealChevron) mealChevron.style.transform = 'rotate(180deg)';
+      } else {
+        mealBody.classList.remove('hidden');
+        if (mealChevron) mealChevron.style.transform = 'rotate(0deg)';
+      }
+    });
+  }
+
+  // Theme Toggle
   document.getElementById('themeToggleBtn').addEventListener('click', () => {
     setTheme(currentTheme === 'dark' ? 'light' : 'dark');
   });
 
+  // Today Button
   document.getElementById('btnToday').addEventListener('click', () => {
     selectedDate = todayDateStr;
     const parts = todayDateStr.split('-');
@@ -648,11 +693,13 @@ function setupEventListeners() {
     fetchMealMenu(selectedDate);
   });
 
+  // Refresh Button
   document.getElementById('btnRefresh').addEventListener('click', () => {
     fetchAttendance(selectedDate);
     fetchMealMenu(selectedDate);
   });
 
+  // Month Navigation
   document.getElementById('btnPrevMonth').addEventListener('click', () => {
     const prevYear = calendarViewDate.getFullYear();
     calendarViewDate.setMonth(calendarViewDate.getMonth() - 1);
@@ -671,11 +718,13 @@ function setupEventListeners() {
     renderCalendar();
   });
 
+  // Search Filter
   document.getElementById('tableSearchInput').addEventListener('input', (e) => {
     searchQuery = e.target.value;
     renderDetailedTable();
   });
 
+  // Clear Filter Buttons
   document.getElementById('btnClearEmpFilter').addEventListener('click', () => {
     toggleEmpFilter(selectedEmpFilter);
   });
@@ -683,6 +732,7 @@ function setupEventListeners() {
     toggleEmpFilter(selectedEmpFilter);
   });
 
+  // Add Employee Modal
   const addEmpModal = document.getElementById('addEmpModal');
   document.getElementById('btnOpenAddEmpModal').addEventListener('click', () => {
     addEmpModal.classList.remove('hidden');
@@ -724,6 +774,7 @@ function setupEventListeners() {
     }
   });
 
+  // Raw JSON Modal
   const jsonModal = document.getElementById('jsonModal');
   document.getElementById('btnViewRawJson').addEventListener('click', () => {
     jsonModal.classList.remove('hidden');
