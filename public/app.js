@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCalendar();
   setupEventListeners();
   fetchAttendance(selectedDate);
+  fetchMealMenu(selectedDate);
 });
 
 // Fetch Public Holidays for Year
@@ -96,6 +97,96 @@ async function fetchYearHolidays(year) {
     }
   } catch (e) {
     console.warn('Holidays fetch error, using built-in holidays dataset:', e);
+  }
+}
+
+// Fetch Daily Meal Menu from Proxy API
+async function fetchMealMenu(dateStr) {
+  const container = document.getElementById('mealMenuContainer');
+  const dateText = document.getElementById('mealDateText');
+
+  if (dateText) dateText.textContent = dateStr;
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="py-3 text-center text-slate-400 text-xs">
+      <i class="fa-solid fa-spinner fa-spin mr-1"></i> 식단 불러오는 중...
+    </div>
+  `;
+
+  try {
+    const res = await fetch(`/api/meal?searchDate=${dateStr}`);
+    const data = await res.json();
+
+    const resultData = (data && data.data && Array.isArray(data.data.resultData)) ? data.data.resultData : [];
+
+    if (resultData.length === 0) {
+      container.innerHTML = `
+        <div class="p-3 text-center rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 text-xs">
+          🍽️ 등록된 식단 정보가 없습니다.
+        </div>
+      `;
+      return;
+    }
+
+    const typeNames = {
+      'LUNCH': '중식 ☀️',
+      'DINNER': '석식 🌙',
+      'BREAKFAST': '조식 🌅'
+    };
+
+    container.innerHTML = resultData.map(meal => {
+      const typeBadge = typeNames[meal.type] || meal.type || '식단';
+      const contentText = meal.content || '식단 내용이 없습니다.';
+
+      let imageMarkup = `
+        <div class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-200 dark:border-slate-700/40 flex items-center gap-1.5">
+          <span>🍽️ 이미지가 등록되지 않았습니다</span>
+        </div>
+      `;
+
+      if (meal.imgList && Array.isArray(meal.imgList) && meal.imgList.length > 0) {
+        const firstImg = meal.imgList[0];
+        if (firstImg && firstImg.imgSrc) {
+          const fullImgUrl = `https://t.bodyfriend.co.kr${firstImg.imgSrc}`;
+          imageMarkup = `
+            <div class="mt-2 group relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+              <a href="${fullImgUrl}" target="_blank" rel="noopener noreferrer" class="block relative">
+                <img src="${fullImgUrl}" alt="식단 이미지" class="w-full h-36 object-cover transition-transform duration-200 group-hover:scale-105" 
+                  onerror="this.onerror=null; this.parentElement.parentElement.innerHTML='<div class=\'p-2 text-[11px] text-slate-500 bg-slate-100 dark:bg-slate-900 rounded\'>🍽️ 이미지가 등록되지 않았습니다</div>';">
+                <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                  <i class="fa-solid fa-up-right-from-square text-xs"></i> 원본 이미지 보기
+                </div>
+              </a>
+            </div>
+          `;
+        }
+      }
+
+      return `
+        <div class="p-3 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-[11px]">
+              ${typeBadge}
+            </span>
+          </div>
+
+          <p class="text-xs leading-relaxed text-slate-800 dark:text-slate-200 font-medium">
+            ${contentText}
+          </p>
+
+          ${imageMarkup}
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error('Meal fetch error:', err);
+    container.innerHTML = `
+      <div class="p-3 text-center rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 text-xs">
+        🍽️ 식단 정보를 불러오는 중 오류가 발생했습니다.
+      </div>
+    `;
   }
 }
 
@@ -256,6 +347,7 @@ function renderCalendar() {
       document.getElementById('selectedDateText').textContent = selectedDate;
       renderCalendar();
       fetchAttendance(selectedDate);
+      fetchMealMenu(selectedDate);
     });
 
     grid.appendChild(btn);
@@ -553,10 +645,12 @@ function setupEventListeners() {
     fetchYearHolidays(calendarViewDate.getFullYear());
     renderCalendar();
     fetchAttendance(selectedDate);
+    fetchMealMenu(selectedDate);
   });
 
   document.getElementById('btnRefresh').addEventListener('click', () => {
     fetchAttendance(selectedDate);
+    fetchMealMenu(selectedDate);
   });
 
   document.getElementById('btnPrevMonth').addEventListener('click', () => {

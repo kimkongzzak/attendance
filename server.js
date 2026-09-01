@@ -89,6 +89,31 @@ app.get('/api/holidays', async (req, res) => {
   }
 });
 
+// Meal Carte List Proxy Endpoint
+app.get('/api/meal', async (req, res) => {
+  try {
+    const searchDate = req.query.searchDate || new Date().toISOString().split('T')[0];
+    const targetUrl = `https://t.bodyfriend.co.kr/restaurant/api/CarteListByDate.json?startDate=${searchDate}&endDate=${searchDate}`;
+
+    console.log(`[Meal API Proxy] Fetching meal menu for date: ${searchDate}`);
+    const response = await axios.get(targetUrl, { timeout: 5000 });
+
+    res.json({
+      success: true,
+      searchDate,
+      data: response.data
+    });
+  } catch (error) {
+    console.error('[Meal API Error]', error.message);
+    res.json({
+      success: false,
+      searchDate: req.query.searchDate,
+      message: '식단 데이터를 가져오지 못했습니다.',
+      error: error.message
+    });
+  }
+});
+
 // Serve frontend for all other routes
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
