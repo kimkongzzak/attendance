@@ -186,6 +186,9 @@ function renderCarousel() {
 
   if (total === 0) {
     track.innerHTML = '<div class="py-8 text-center text-xs text-slate-400 w-full">등록된 사진이 없습니다.</div>';
+    if (btnPrev) btnPrev.classList.add('hidden');
+    if (btnNext) btnNext.classList.add('hidden');
+    if (dotsContainer) dotsContainer.classList.add('hidden');
     return;
   }
 
@@ -194,16 +197,16 @@ function renderCarousel() {
 
   if (total <= visibleCount) {
     track.style.transition = 'none';
-    track.style.transform = 'translateX(0)';
+    track.style.transform = 'translate3d(0, 0, 0)';
     track.style.width = '100%';
 
     track.innerHTML = carouselPhotos.map((photo, idx) => {
       const src = typeof photo === 'string' ? photo : (photo.url || photo);
       return `
         <div class="p-1" style="width: ${100 / visibleCount}%;">
-          <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md">
+          <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md cursor-pointer" onclick="openPhotoPreviewModal(${idx})">
             <img src="${src}" alt="사진 ${idx + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-            <button onclick="deleteCarouselPhoto(${idx})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
+            <button onclick="event.stopPropagation(); deleteCarouselPhoto(${idx})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
               <i class="fa-solid fa-trash-can text-xs"></i>
             </button>
           </div>
@@ -220,38 +223,40 @@ function renderCarousel() {
   if (btnPrev) btnPrev.classList.remove('hidden');
   if (btnNext) btnNext.classList.remove('hidden');
 
-  const renderCount = visibleCount + 1;
-  const itemWidthPercent = 100 / visibleCount;
-  const trackWidthPercent = itemWidthPercent * renderCount;
+  // Infinite Track: Original photos + cloned first visibleCount photos
+  const fullList = [...carouselPhotos, ...carouselPhotos.slice(0, visibleCount)];
+  const totalItems = fullList.length;
+  const itemPercent = 100 / totalItems;
 
-  track.style.width = `${trackWidthPercent}%`;
+  track.style.width = `${(totalItems / visibleCount) * 100}%`;
 
-  const slideItems = [];
-  for (let i = 0; i < renderCount; i++) {
-    const itemIndex = (currentCarouselIndex + i) % total;
-    slideItems.push({ photo: carouselPhotos[itemIndex], index: itemIndex });
+  // Render HTML track only if length changed to preserve DOM nodes for smooth CSS transform
+  if (track.children.length !== totalItems) {
+    track.innerHTML = fullList.map((photo, idx) => {
+      const realIndex = idx % total;
+      const src = typeof photo === 'string' ? photo : (photo.url || photo);
+      return `
+        <div class="p-1" style="width: ${itemPercent}%;">
+          <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md cursor-pointer" onclick="openPhotoPreviewModal(${realIndex})">
+            <img src="${src}" alt="사진 ${realIndex + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+            <button onclick="event.stopPropagation(); deleteCarouselPhoto(${realIndex})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
-  track.innerHTML = slideItems.map(item => {
-    const src = typeof item.photo === 'string' ? item.photo : (item.photo.url || item.photo);
-    return `
-      <div class="p-1" style="width: ${100 / renderCount}%;">
-        <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md">
-          <img src="${src}" alt="사진 ${item.index + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-          <button onclick="deleteCarouselPhoto(${item.index})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
-            <i class="fa-solid fa-trash-can text-xs"></i>
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('');
+  updateCarouselTrackTransform(currentCarouselIndex, true);
 
   if (dotsContainer) {
     dotsContainer.classList.remove('hidden');
     dotsContainer.classList.add('flex');
+    const activeIndex = (currentCarouselIndex % total + total) % total;
     dotsContainer.innerHTML = Array.from({ length: total }).map((_, i) => `
-      <button onclick="setCarouselIndexDirect(${i})" class="h-2 rounded-full transition-all duration-200 ${
-        i === (currentCarouselIndex % total)
+      <button onclick="setCarouselIndexDirect(${i})" class="h-2 rounded-full transition-all duration-300 ${
+        i === activeIndex
           ? 'bg-amber-500 w-5' 
           : 'bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 w-2'
       }"></button>
@@ -259,10 +264,62 @@ function renderCarousel() {
   }
 }
 
+function updateCarouselTrackTransform(index, animated = true) {
+  const track = document.getElementById('carouselTrack');
+  if (!track) return;
+
+  const isMobile = window.innerWidth < 640;
+  const visibleCount = isMobile ? 2 : 4;
+  const itemPercent = 100 / (carouselPhotos.length + visibleCount);
+  const offsetPercent = index * itemPercent;
+
+  if (animated) {
+    track.style.transition = 'transform 600ms cubic-bezier(0.25, 1, 0.5, 1)';
+  } else {
+    track.style.transition = 'none';
+  }
+
+  track.style.transform = `translate3d(-${offsetPercent}%, 0, 0)`;
+}
+
 window.slideNextCarousel = function() {
-  if (carouselPhotos.length <= 1) return;
-  currentCarouselIndex = (currentCarouselIndex + 1) % carouselPhotos.length;
-  renderCarousel();
+  if (carouselPhotos.length <= 1 || isCarouselAnimating) return;
+  
+  const isMobile = window.innerWidth < 640;
+  const visibleCount = isMobile ? 2 : 4;
+  const total = carouselPhotos.length;
+
+  if (total <= visibleCount) return;
+
+  isCarouselAnimating = true;
+  currentCarouselIndex++;
+
+  updateCarouselTrackTransform(currentCarouselIndex, true);
+
+  // Update dots
+  const dotsContainer = document.getElementById('carouselDots');
+  if (dotsContainer) {
+    const activeIndex = (currentCarouselIndex % total + total) % total;
+    const dots = dotsContainer.children;
+    for (let i = 0; i < dots.length; i++) {
+      dots[i].className = i === activeIndex
+        ? 'h-2 rounded-full transition-all duration-300 bg-amber-500 w-5'
+        : 'h-2 rounded-full transition-all duration-300 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 w-2';
+    }
+  }
+
+  // Seamless Wrap-around to 0 when passing last photo
+  if (currentCarouselIndex >= total) {
+    setTimeout(() => {
+      currentCarouselIndex = 0;
+      updateCarouselTrackTransform(0, false);
+      isCarouselAnimating = false;
+    }, 600);
+  } else {
+    setTimeout(() => {
+      isCarouselAnimating = false;
+    }, 600);
+  }
 };
 
 window.slidePrevCarousel = function() {
@@ -474,8 +531,8 @@ window.renderGalleryManageList = function() {
   listEl.innerHTML = managePhotosList.map((photo, idx) => `
     <div class="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/70 transition-all hover:border-amber-400 dark:hover:border-amber-500 shadow-sm">
       <!-- 4:3 Aspect Ratio Compact Image Frame -->
-      <div class="relative flex-1 aspect-[4/3] rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700">
-        <img src="${photo.url}" alt="갤러리 이미지 ${idx + 1}" class="w-full h-full object-cover">
+      <div class="relative flex-1 aspect-[4/3] rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 cursor-pointer group/thumb" onclick="openPhotoPreviewModal(${idx})" title="클릭하여 크게 보기">
+        <img src="${photo.url}" alt="갤러리 이미지 ${idx + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105">
         <!-- Order Badge Overlay -->
         <span class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-md text-amber-400 font-extrabold text-[11px] shadow-md border border-slate-700/50">
           #${idx + 1}
@@ -577,9 +634,115 @@ window.saveGalleryPhotoOrder = async function() {
   }
 
   saveCarouselPhotos();
+  saveCarouselPhotos();
   closeGalleryManageModal();
   loadCarouselPhotos();
 };
+
+// --- Photo Fullscreen Preview Modal Logic ---
+let currentPreviewIndex = 0;
+
+window.openPhotoPreviewModal = function(index) {
+  if (!Array.isArray(carouselPhotos) || carouselPhotos.length === 0) return;
+  if (typeof index !== 'number' || index < 0 || index >= carouselPhotos.length) index = 0;
+  
+  currentPreviewIndex = index;
+  updatePhotoPreviewContent();
+
+  const modal = document.getElementById('photoPreviewModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+};
+
+window.closePhotoPreviewModal = function() {
+  const modal = document.getElementById('photoPreviewModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+};
+
+window.previewNextPhoto = function() {
+  if (!Array.isArray(carouselPhotos) || carouselPhotos.length === 0) return;
+  currentPreviewIndex = (currentPreviewIndex + 1) % carouselPhotos.length;
+  updatePhotoPreviewContent();
+};
+
+window.previewPrevPhoto = function() {
+  if (!Array.isArray(carouselPhotos) || carouselPhotos.length === 0) return;
+  currentPreviewIndex = (currentPreviewIndex - 1 + carouselPhotos.length) % carouselPhotos.length;
+  updatePhotoPreviewContent();
+};
+
+function updatePhotoPreviewContent() {
+  const photo = carouselPhotos[currentPreviewIndex];
+  if (!photo) return;
+
+  const src = typeof photo === 'string' ? photo : (photo.url || photo);
+  const name = typeof photo === 'object' ? (photo.name || photo.photo_name || `사진 ${currentPreviewIndex + 1}`) : `사진 ${currentPreviewIndex + 1}`;
+
+  const imgEl = document.getElementById('photoPreviewImg');
+  const titleEl = document.getElementById('photoPreviewTitle');
+  const counterEl = document.getElementById('photoPreviewCounter');
+
+  if (imgEl) imgEl.src = src;
+  if (titleEl) titleEl.textContent = name;
+  if (counterEl) counterEl.textContent = `#${currentPreviewIndex + 1} / ${carouselPhotos.length}`;
+}
+
+// Global Keyboard Navigation for Photo Preview
+document.addEventListener('keydown', (e) => {
+  const modal = document.getElementById('photoPreviewModal');
+  if (!modal || modal.classList.contains('hidden')) return;
+
+  if (e.key === 'Escape') {
+    closePhotoPreviewModal();
+  } else if (e.key === 'ArrowLeft') {
+    previewPrevPhoto();
+  } else if (e.key === 'ArrowRight') {
+    previewNextPhoto();
+  }
+});
+
+// --- Carousel Auto-Play Logic (2.5-Second Smooth Auto Slide) ---
+let carouselAutoPlayInterval = null;
+let isCarouselHovered = false;
+
+function startCarouselAutoPlay() {
+  stopCarouselAutoPlay();
+  carouselAutoPlayInterval = setInterval(() => {
+    const previewModal = document.getElementById('photoPreviewModal');
+    const manageModal = document.getElementById('galleryManageModal');
+    const isPreviewOpen = previewModal && !previewModal.classList.contains('hidden');
+    const isManageOpen = manageModal && !manageModal.classList.contains('hidden');
+
+    if (!isCarouselHovered && !isPreviewOpen && !isManageOpen && carouselPhotos.length > 1) {
+      slideNextCarousel();
+    }
+  }, 2500);
+}
+
+function stopCarouselAutoPlay() {
+  if (carouselAutoPlayInterval) {
+    clearInterval(carouselAutoPlayInterval);
+    carouselAutoPlayInterval = null;
+  }
+}
+
+function setupCarouselAutoPlayListeners() {
+  const container = document.getElementById('photoCarouselContainer');
+  if (container) {
+    container.addEventListener('mouseenter', () => {
+      isCarouselHovered = true;
+    });
+    container.addEventListener('mouseleave', () => {
+      isCarouselHovered = false;
+    });
+  }
+  startCarouselAutoPlay();
+}
 
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
@@ -593,6 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   fetchAttendance(selectedDate);
   fetchMealMenu(selectedDate);
+  setupCarouselAutoPlayListeners();
   window.addEventListener('resize', renderCarousel);
 });
 

@@ -537,6 +537,44 @@
     </div>
   </div>
 
+  <!-- Photo Preview / Fullscreen Popup Modal -->
+  <div id="photoPreviewModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 hidden transition-all duration-300">
+    <div class="relative max-w-5xl w-full max-h-[92vh] flex flex-col items-center justify-center select-none">
+      
+      <!-- Top Bar: Image Name & Close Button -->
+      <div class="w-full flex items-center justify-between px-2 mb-3 text-white">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-extrabold" id="photoPreviewCounter">
+            #1 / 1
+          </span>
+          <span class="text-sm sm:text-base font-bold truncate max-w-[200px] sm:max-w-md" id="photoPreviewTitle">
+            강아지 사진
+          </span>
+        </div>
+
+        <button onclick="closePhotoPreviewModal()" title="닫기 (Esc)" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-sm">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Main Image Container -->
+      <div class="relative w-full flex items-center justify-center overflow-hidden rounded-2xl bg-black/40 border border-white/10 shadow-2xl p-1 group">
+        <img id="photoPreviewImg" src="" alt="크게 보기 이미지" class="max-h-[78vh] max-w-full object-contain rounded-xl transition-all duration-300">
+        
+        <!-- Prev Button -->
+        <button onclick="previewPrevPhoto()" title="이전 사진 (Left Arrow)" class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-xl backdrop-blur-md cursor-pointer border border-white/10">
+          <i class="fa-solid fa-chevron-left text-base"></i>
+        </button>
+
+        <!-- Next Button -->
+        <button onclick="previewNextPhoto()" title="다음 사진 (Right Arrow)" class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-xl backdrop-blur-md cursor-pointer border border-white/10">
+          <i class="fa-solid fa-chevron-right text-base"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer class="border-t border-slate-200 dark:border-slate-800 py-4 text-center text-xs text-slate-400 mt-6">
     <p>© 2026 Daily Attendance Service. Built for Team Management.</p>
