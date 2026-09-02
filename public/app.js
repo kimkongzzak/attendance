@@ -287,13 +287,23 @@ window.deleteCarouselPhoto = async function(index) {
     // If photo has Supabase DB ID, delete from Supabase DB
     if (typeof targetPhoto === 'object' && targetPhoto.id) {
       try {
-        await fetch('/api/photos', {
+        const res = await fetch('/api/photos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'delete', id: targetPhoto.id })
         });
+        const data = await res.json();
+        if (data && data.success) {
+          console.log(`✅ [Supabase DB 사진 삭제 성공] ID: ${targetPhoto.id}`);
+        } else {
+          console.error('🚨 [Supabase DB 사진 삭제 실패]:', data.message || '삭제 실패');
+          if (data.detailMsg) console.error('📌 [상세 오류 내역]:', data.detailMsg);
+          if (data.hint) console.warn('💡 [해결 힌트]:', data.hint);
+          alert(`🚨 Supabase DB 사진 삭제 실패!\n\n사유: ${data.message || '오류 발생'}\n${data.detailMsg ? '상세: ' + data.detailMsg : ''}`);
+        }
       } catch (err) {
-        console.warn('[Supabase DB Delete Warning]', err);
+        console.error('🚨 [Supabase DB 사진 삭제 네트워크 예외]:', err);
+        alert(`🚨 사진 삭제 중 네트워크 오류가 발생했습니다.\n${err.message}`);
       }
     }
 
@@ -398,6 +408,151 @@ window.handleCarouselUpload = function(event) {
   });
 
   event.target.value = '';
+};
+
+// --- Photo Gallery Manage Modal Functions (View All, Reorder, Delete) ---
+let managePhotosList = [];
+
+window.openGalleryManageModal = function() {
+  const modal = document.getElementById('galleryManageModal');
+  if (!modal) return;
+  managePhotosList = JSON.parse(JSON.stringify(carouselPhotos));
+  renderGalleryManageList();
+  modal.classList.remove('hidden');
+};
+
+window.closeGalleryManageModal = function() {
+  const modal = document.getElementById('galleryManageModal');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.renderGalleryManageList = function() {
+  const listEl = document.getElementById('galleryManageList');
+  const totalTextEl = document.getElementById('galleryManageTotalText');
+  if (!listEl) return;
+
+  if (totalTextEl) {
+    totalTextEl.textContent = `총 ${managePhotosList.length}장의 이미지`;
+  }
+
+  if (managePhotosList.length === 0) {
+    listEl.innerHTML = `
+      <div class="py-12 text-center text-slate-400">
+        <i class="fa-regular fa-image text-3xl mb-2 text-slate-300 dark:text-slate-600 block"></i>
+        등록된 사진이 없습니다.
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = managePhotosList.map((photo, idx) => `
+    <div class="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/70 transition-all hover:border-amber-400 dark:hover:border-amber-500 shadow-sm">
+      <!-- 4:3 Aspect Ratio Compact Image Frame -->
+      <div class="relative flex-1 aspect-[4/3] rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700">
+        <img src="${photo.url}" alt="갤러리 이미지 ${idx + 1}" class="w-full h-full object-cover">
+        <!-- Order Badge Overlay -->
+        <span class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-md text-amber-400 font-extrabold text-[11px] shadow-md border border-slate-700/50">
+          #${idx + 1}
+        </span>
+      </div>
+
+      <!-- Action Buttons Column -->
+      <div class="flex flex-col gap-1.5 flex-shrink-0">
+        <button onclick="moveGalleryPhotoUp(${idx})" ${idx === 0 ? 'disabled class="opacity-25 cursor-not-allowed w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 flex items-center justify-center"' : 'class="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-amber-500 hover:text-white text-slate-700 dark:text-slate-200 transition-colors flex items-center justify-center cursor-pointer shadow-sm"'} title="위로 이동">
+          <i class="fa-solid fa-chevron-up text-xs"></i>
+        </button>
+        <button onclick="moveGalleryPhotoDown(${idx})" ${idx === managePhotosList.length - 1 ? 'disabled class="opacity-25 cursor-not-allowed w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 flex items-center justify-center"' : 'class="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-amber-500 hover:text-white text-slate-700 dark:text-slate-200 transition-colors flex items-center justify-center cursor-pointer shadow-sm"'} title="아래로 이동">
+          <i class="fa-solid fa-chevron-down text-xs"></i>
+        </button>
+        <button onclick="deleteGalleryPhotoInModal(${idx})" class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-600 hover:text-white text-rose-600 dark:text-rose-400 transition-colors flex items-center justify-center cursor-pointer shadow-sm mt-0.5" title="삭제">
+          <i class="fa-solid fa-trash-can text-xs"></i>
+        </button>
+      </div>
+    </div>
+  `).join('');
+};
+
+window.moveGalleryPhotoUp = function(index) {
+  if (index <= 0) return;
+  const temp = managePhotosList[index];
+  managePhotosList[index] = managePhotosList[index - 1];
+  managePhotosList[index - 1] = temp;
+  renderGalleryManageList();
+};
+
+window.moveGalleryPhotoDown = function(index) {
+  if (index >= managePhotosList.length - 1) return;
+  const temp = managePhotosList[index];
+  managePhotosList[index] = managePhotosList[index + 1];
+  managePhotosList[index + 1] = temp;
+  renderGalleryManageList();
+};
+
+window.deleteGalleryPhotoInModal = async function(index) {
+  if (managePhotosList.length <= 1) {
+    alert('최소 1장의 사진은 갤러리에 남아있어야 합니다.');
+    return;
+  }
+  const targetPhoto = managePhotosList[index];
+  if (!targetPhoto) return;
+
+  if (confirm(`'${targetPhoto.name || '사진 ' + (index + 1)}'을(를) 삭제하시겠습니까?`)) {
+    if (typeof targetPhoto === 'object' && targetPhoto.id) {
+      try {
+        const res = await fetch('/api/photos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', id: targetPhoto.id })
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          console.log(`✅ [Supabase DB 모달 사진 삭제 성공] ID: ${targetPhoto.id}`);
+        } else {
+          console.error('🚨 [Supabase DB 사진 삭제 실패]:', data.message || '삭제 실패');
+          if (data.detailMsg) console.error('📌 [상세 오류 내역]:', data.detailMsg);
+          if (data.hint) console.warn('💡 [해결 힌트]:', data.hint);
+          alert(`🚨 Supabase DB 사진 삭제 실패!\n\n사유: ${data.message || '오류 발생'}\n${data.detailMsg ? '상세: ' + data.detailMsg : ''}`);
+        }
+      } catch (err) {
+        console.error('🚨 [Supabase DB 사진 삭제 통신 오류]:', err);
+        alert(`🚨 사진 삭제 중 네트워크 오류가 발생했습니다.\n${err.message}`);
+      }
+    }
+    managePhotosList.splice(index, 1);
+    renderGalleryManageList();
+  }
+};
+
+window.saveGalleryPhotoOrder = async function() {
+  carouselPhotos = JSON.parse(JSON.stringify(managePhotosList));
+  currentCarouselIndex = 0;
+
+  const dbPhotos = carouselPhotos.filter(p => p && p.id);
+  if (dbPhotos.length > 0) {
+    try {
+      const res = await fetch('/api/photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reorder', photos: carouselPhotos.map(p => ({ id: p.id })) })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        console.log('✅ [Supabase DB 순서 저장 성공]:', data.message || '사진 순서가 정상 저장되었습니다.');
+      } else {
+        console.error('🚨 [Supabase DB 순서 저장 실패]:', data.message || '순서 저장 실패');
+        if (data.detailMsg) console.error('📌 [상세 오류 내역]:', data.detailMsg);
+        if (data.hint) console.warn('💡 [해결 힌트]:', data.hint);
+        alert(`🚨 Supabase DB 사진 순서 저장 실패!\n\n사유: ${data.message || '오류 발생'}\n${data.detailMsg ? '상세: ' + data.detailMsg : ''}`);
+      }
+    } catch (err) {
+      console.error('🚨 [Supabase DB 순서 저장 네트워크/파싱 예외 발생]:', err);
+      alert(`🚨 사진 순서 저장 중 통신 오류가 발생했습니다.\n${err.message}`);
+    }
+  }
+
+  saveCarouselPhotos();
+  closeGalleryManageModal();
+  loadCarouselPhotos();
 };
 
 // Initial Load

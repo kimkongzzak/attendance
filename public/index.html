@@ -216,8 +216,12 @@
           </h3>
 
           <div class="flex items-center gap-2">
-            <button onclick="loadCarouselPhotos()" title="포토 갤러리 새로고침" class="w-6 h-6 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors cursor-pointer">
-              <i class="fa-solid fa-rotate-left text-xs"></i>
+            <button onclick="loadCarouselPhotos()" title="포토 갤러리 새로고침" class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors flex items-center justify-center text-xs cursor-pointer">
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+            <button onclick="openGalleryManageModal()" title="이미지 전체보기 및 순서/삭제 관리" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-grip text-xs"></i>
+              전체보기
             </button>
             <input type="file" id="carouselFileInput" accept="image/*" multiple class="hidden" onchange="handleCarouselUpload(event)">
             <button onclick="document.getElementById('carouselFileInput').click()" title="사진 추가" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer flex items-center gap-1.5">
@@ -476,6 +480,40 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Photo Gallery Manage Modal (View All, Reorder, Delete) -->
+  <div id="galleryManageModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="theme-card rounded-2xl max-w-sm w-full p-4 shadow-2xl flex flex-col max-h-[85vh]">
+      <div class="flex items-center justify-between pb-3.5 mb-4 border-b border-slate-200 dark:border-slate-700/60">
+        <div>
+          <h3 class="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+            <i class="fa-solid fa-images text-amber-500"></i> 포토 갤러리 이미지 전체 관리
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">등록된 모든 사진을 확인하고, 순서를 변경하거나 삭제할 수 있습니다.</p>
+        </div>
+        <button onclick="closeGalleryManageModal()" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center text-sm transition-colors cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Photo Grid / List Container -->
+      <div id="galleryManageList" class="flex-1 overflow-y-auto space-y-2.5 pr-1 text-xs min-h-[220px]">
+        <!-- Rendered dynamically via JS -->
+      </div>
+
+      <div class="flex items-center justify-between pt-4 mt-4 border-t border-slate-200 dark:border-slate-700/60">
+        <span class="text-xs text-slate-400 font-medium" id="galleryManageTotalText">총 0장의 이미지</span>
+        <div class="flex items-center gap-2">
+          <button onclick="closeGalleryManageModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-all cursor-pointer">
+            닫기
+          </button>
+          <button onclick="saveGalleryPhotoOrder()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-check"></i> 순서 저장 완료
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

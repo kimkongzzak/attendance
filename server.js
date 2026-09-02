@@ -39,7 +39,7 @@ app.get('/api/photos', async (req, res) => {
   }
 
   try {
-    const supabaseRes = await axios.get(`${config.url}/rest/v1/gallery_photos?select=*&order=id.desc`, {
+    const supabaseRes = await axios.get(`${config.url}/rest/v1/gallery_photos?select=*&order=display_order.desc,id.desc`, {
       headers: {
         'apikey': config.key,
         'Authorization': `Bearer ${config.key}`
@@ -72,6 +72,72 @@ app.get('/api/photos', async (req, res) => {
 app.post('/api/photos', async (req, res) => {
   const config = getSupabaseConfig();
   const { action, id, photo_name, photo_data, display_order } = req.body || {};
+
+  // Reorder Action
+  if (action === 'reorder') {
+    const photosList = req.body.photos;
+    if (!Array.isArray(photosList)) {
+      return res.status(200).json({ success: false, message: 'photos 배열이 누락되었습니다.' });
+    }
+
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: false, isConfigured: false, message: 'Supabase 미설정 상태입니다.' });
+    }
+
+    try {
+      const startOrder = 10000;
+      let updatedCount = 0;
+      for (let i = 0; i < photosList.length; i++) {
+        const item = photosList[i];
+        if (item && item.id) {
+          const newOrder = startOrder - (i * 10);
+          const patchRes = await axios.patch(`${config.url}/rest/v1/gallery_photos?id=eq.${item.id}`, {
+            display_order: newOrder
+          }, {
+            headers: {
+              'apikey': config.key,
+              'Authorization': `Bearer ${config.key}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            },
+            httpsAgent
+          });
+
+          if (patchRes.data && Array.isArray(patchRes.data) && patchRes.data.length > 0) {
+            updatedCount += patchRes.data.length;
+            console.log(`✅ [Supabase DB PATCH 성공] ID: ${item.id} -> display_order: ${newOrder}`);
+          } else {
+            console.error(`🚨 [Supabase DB PATCH 실패] ID: ${item.id} (0건 수정됨 - RLS UPDATE 정책 확인 필요)`);
+          }
+        }
+      }
+
+      if (updatedCount === 0) {
+        return res.status(200).json({
+          success: false,
+          isConfigured: true,
+          message: 'Supabase DB 사진 순서 변경 실패 (0건 수정됨)',
+          detailMsg: 'Supabase DB에서 UPDATE 행이 0개 수정되었습니다. Supabase RLS UPDATE 정책을 확인해주세요.',
+          hint: 'Supabase Dashboard -> Table Editor -> gallery_photos -> RLS Policies -> Enable UPDATE policy for anon/authenticated'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        isConfigured: true,
+        message: `사진 순서가 저장되었습니다. (총 ${updatedCount}건 DB 업데이트 완료)`
+      });
+    } catch (err) {
+      const errDetail = err.response && err.response.data ? JSON.stringify(err.response.data) : err.message;
+      console.error('🚨 [Supabase Reorder Patch Error Detail]:', errDetail);
+      return res.status(200).json({
+        success: false,
+        isConfigured: true,
+        message: 'Supabase DB 사진 순서 저장 실패',
+        detailMsg: errDetail
+      });
+    }
+  }
 
   // Delete Action
   if (action === 'delete' || (id && !photo_data)) {
@@ -117,10 +183,26 @@ app.post('/api/photos', async (req, res) => {
   }
 
   try {
+    let newDisplayOrder = 10000;
+    try {
+      const maxRes = await axios.get(`${config.url}/rest/v1/gallery_photos?select=display_order&order=display_order.desc&limit=1`, {
+        headers: {
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`
+        },
+        httpsAgent
+      });
+      if (maxRes.data && maxRes.data.length > 0 && typeof maxRes.data[0].display_order === 'number') {
+        newDisplayOrder = maxRes.data[0].display_order + 10;
+      }
+    } catch (maxErr) {
+      console.warn('[Supabase Max Order Fetch Warning]', maxErr.message);
+    }
+
     const supabaseRes = await axios.post(`${config.url}/rest/v1/gallery_photos`, {
       photo_name: photo_name || '포토 갤러리 이미지',
       photo_data: photo_data,
-      display_order: display_order || 0
+      display_order: display_order || newDisplayOrder
     }, {
       headers: {
         'apikey': config.key,
@@ -135,7 +217,7 @@ app.post('/api/photos', async (req, res) => {
     return res.json({
       success: true,
       isConfigured: true,
-      message: 'Supabase DB에 사진이 성공적으로 저장되었습니다!',
+      message: `Supabase DB에 사진이 성공적으로 저장되었습니다! (display_order: ${newDisplayOrder})`,
       photo: newPhoto
     });
   } catch (err) {
