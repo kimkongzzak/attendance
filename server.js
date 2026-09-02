@@ -68,11 +68,42 @@ app.get('/api/photos', async (req, res) => {
   }
 });
 
-// POST /api/photos - Insert new photo into Supabase DB
+// POST /api/photos - Insert or Delete photo in Supabase DB
 app.post('/api/photos', async (req, res) => {
   const config = getSupabaseConfig();
-  const { photo_name, photo_data, display_order } = req.body || {};
+  const { action, id, photo_name, photo_data, display_order } = req.body || {};
 
+  // Delete Action
+  if (action === 'delete' || (id && !photo_data)) {
+    const deleteId = id || req.body.id;
+    if (!deleteId) {
+      return res.status(400).json({ success: false, message: '삭제할 photo ID가 지정되지 않았습니다.' });
+    }
+
+    if (!config.isConfigured) {
+      return res.json({ success: false, isConfigured: false, message: 'Supabase가 설정되지 않은 상태입니다.' });
+    }
+
+    try {
+      await axios.delete(`${config.url}/rest/v1/gallery_photos?id=eq.${deleteId}`, {
+        headers: {
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`
+        },
+        httpsAgent
+      });
+      return res.json({
+        success: true,
+        isConfigured: true,
+        message: `Supabase DB에서 ID ${deleteId} 사진이 삭제되었습니다.`
+      });
+    } catch (err) {
+      console.error('[Supabase Delete Photo Error]', err.response ? err.response.data : err.message);
+      return res.status(500).json({ success: false, isConfigured: true, message: 'Supabase DB 사진 삭제에 실패했습니다.', error: err.message });
+    }
+  }
+
+  // Insert Action
   if (!photo_data) {
     return res.status(400).json({ success: false, message: 'photo_data가 누락되었습니다.' });
   }

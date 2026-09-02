@@ -287,10 +287,10 @@ window.deleteCarouselPhoto = async function(index) {
     // If photo has Supabase DB ID, delete from Supabase DB
     if (typeof targetPhoto === 'object' && targetPhoto.id) {
       try {
-        await fetch('/api/photos/delete', {
+        await fetch('/api/photos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: targetPhoto.id })
+          body: JSON.stringify({ action: 'delete', id: targetPhoto.id })
         });
       } catch (err) {
         console.warn('[Supabase DB Delete Warning]', err);
