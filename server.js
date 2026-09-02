@@ -15,6 +15,138 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Supabase Database Credentials & Helper Functions
+function getSupabaseConfig() {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const key = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  return { url, key, isConfigured: Boolean(url && key) };
+}
+
+// GET /api/photos - Fetch all photos from Supabase DB (gallery_photos table)
+app.get('/api/photos', async (req, res) => {
+  const config = getSupabaseConfig();
+  if (!config.isConfigured) {
+    return res.json({
+      success: false,
+      isConfigured: false,
+      message: 'Supabase URL 및 API Key가 설정되지 않았습니다.',
+      photos: []
+    });
+  }
+
+  try {
+    const supabaseRes = await axios.get(`${config.url}/rest/v1/gallery_photos?select=*&order=display_order.asc,id.asc`, {
+      headers: {
+        'apikey': config.key,
+        'Authorization': `Bearer ${config.key}`
+      }
+    });
+    return res.json({
+      success: true,
+      isConfigured: true,
+      photos: supabaseRes.data || []
+    });
+  } catch (err) {
+    console.error('[Supabase GET /api/photos Error]', err.response ? err.response.data : err.message);
+    return res.status(500).json({
+      success: false,
+      isConfigured: true,
+      message: 'Supabase DB에서 사진을 조회하지 못했습니다.',
+      error: err.message,
+      photos: []
+    });
+  }
+});
+
+// POST /api/photos - Insert new photo into Supabase DB
+app.post('/api/photos', async (req, res) => {
+  const config = getSupabaseConfig();
+  const { photo_name, photo_data, display_order } = req.body || {};
+
+  if (!photo_data) {
+    return res.status(400).json({ success: false, message: 'photo_data가 누락되었습니다.' });
+  }
+
+  if (!config.isConfigured) {
+    return res.json({
+      success: false,
+      isConfigured: false,
+      message: 'Supabase가 설정되지 않아 로컬 모드로 동작합니다.'
+    });
+  }
+
+  try {
+    const supabaseRes = await axios.post(`${config.url}/rest/v1/gallery_photos`, {
+      photo_name: photo_name || '포토 갤러리 이미지',
+      photo_data: photo_data,
+      display_order: display_order || 0
+    }, {
+      headers: {
+        'apikey': config.key,
+        'Authorization': `Bearer ${config.key}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      }
+    });
+
+    const newPhoto = supabaseRes.data && supabaseRes.data[0] ? supabaseRes.data[0] : supabaseRes.data;
+    return res.json({
+      success: true,
+      isConfigured: true,
+      message: 'Supabase DB에 사진이 성공적으로 저장되었습니다!',
+      photo: newPhoto
+    });
+  } catch (err) {
+    console.error('[Supabase POST /api/photos Error]', err.response ? err.response.data : err.message);
+    return res.status(500).json({
+      success: false,
+      isConfigured: true,
+      message: 'Supabase DB 사진 저장에 실패했습니다.',
+      error: err.message
+    });
+  }
+});
+
+// POST /api/photos/delete - Delete photo from Supabase DB by ID
+app.post('/api/photos/delete', async (req, res) => {
+  const config = getSupabaseConfig();
+  const { id } = req.body || {};
+
+  if (!id) {
+    return res.status(400).json({ success: false, message: '삭제할 photo ID가 지정되지 않았습니다.' });
+  }
+
+  if (!config.isConfigured) {
+    return res.json({
+      success: false,
+      isConfigured: false,
+      message: 'Supabase가 설정되지 않은 상태입니다.'
+    });
+  }
+
+  try {
+    await axios.delete(`${config.url}/rest/v1/gallery_photos?id=eq.${id}`, {
+      headers: {
+        'apikey': config.key,
+        'Authorization': `Bearer ${config.key}`
+      }
+    });
+    return res.json({
+      success: true,
+      isConfigured: true,
+      message: `Supabase DB에서 ID ${id} 사진이 삭제되었습니다.`
+    });
+  } catch (err) {
+    console.error('[Supabase DELETE /api/photos/delete Error]', err.response ? err.response.data : err.message);
+    return res.status(500).json({
+      success: false,
+      isConfigured: true,
+      message: 'Supabase DB 사진 삭제에 실패했습니다.',
+      error: err.message
+    });
+  }
+});
+
 // GitHub Repository Photo Upload Endpoint (Saves to public/images/ & Auto-commits to GitHub)
 app.post('/api/upload-photo', (req, res) => {
   try {

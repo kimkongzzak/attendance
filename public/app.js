@@ -76,24 +76,43 @@ let selectedEmpFilter = null; // Filter detailed table by cardId
 let searchQuery = '';
 let currentTheme = 'light';
 
-// Top Unlimited Photo Carousel State & 1-by-1 Smooth Infinite Loop Logic
+// Top Unlimited Photo Carousel State & Supabase Integration
 const MAX_PHOTO_SIZE_MB = 5;
 const DEFAULT_CAROUSEL_PHOTOS = [
-  '/images/dog1.jpg',
-  '/images/dog2.png',
-  '/images/dog3.jpg',
-  '/images/dog4.jpg'
+  { id: null, url: '/images/dog1.jpg', name: '기본 강아지 1' },
+  { id: null, url: '/images/dog2.png', name: '기본 강아지 2' },
+  { id: null, url: '/images/dog3.jpg', name: '기본 강아지 3' },
+  { id: null, url: '/images/dog4.jpg', name: '기본 강아지 4' }
 ];
 
 let carouselPhotos = [];
 let currentCarouselIndex = 0;
 let isCarouselAnimating = false;
 
-function loadCarouselPhotos() {
+async function loadCarouselPhotos() {
+  // First try fetching from Supabase DB via /api/photos
+  try {
+    const res = await fetch('/api/photos');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.photos) && data.photos.length > 0) {
+      carouselPhotos = data.photos.map(p => ({
+        id: p.id,
+        url: p.photo_data,
+        name: p.photo_name || '포토 갤러리 이미지'
+      }));
+      renderCarousel();
+      return;
+    }
+  } catch (err) {
+    console.warn('[Supabase Fetch Notice] Fallback to local storage:', err);
+  }
+
+  // Fallback to local storage or defaults if Supabase is not configured yet
   const saved = localStorage.getItem('user_carousel_photos');
   if (saved) {
     try {
-      carouselPhotos = JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      carouselPhotos = parsed.map((item, idx) => typeof item === 'string' ? { id: null, url: item, name: `사진 ${idx+1}` } : item);
     } catch (e) {
       carouselPhotos = [...DEFAULT_CAROUSEL_PHOTOS];
     }
@@ -108,7 +127,6 @@ function saveCarouselPhotos() {
     localStorage.setItem('user_carousel_photos', JSON.stringify(carouselPhotos));
   } catch (err) {
     console.error('localStorage quota error:', err);
-    alert('브라우저 저장 공간이 부족하여 일부 입력을 보관하지 못했습니다.');
   }
   renderCarousel();
 }
@@ -138,16 +156,19 @@ function renderCarousel() {
     track.style.transform = 'translateX(0)';
     track.style.width = '100%';
 
-    track.innerHTML = carouselPhotos.map((photoUrl, idx) => `
-      <div class="p-1" style="width: ${100 / visibleCount}%;">
-        <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md">
-          <img src="${photoUrl}" alt="사진 ${idx + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-          <button onclick="deleteCarouselPhoto(${idx})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
-            <i class="fa-solid fa-trash-can text-xs"></i>
-          </button>
+    track.innerHTML = carouselPhotos.map((photo, idx) => {
+      const src = typeof photo === 'string' ? photo : (photo.url || photo);
+      return `
+        <div class="p-1" style="width: ${100 / visibleCount}%;">
+          <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md">
+            <img src="${src}" alt="사진 ${idx + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+            <button onclick="deleteCarouselPhoto(${idx})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     if (btnPrev) btnPrev.classList.add('hidden');
     if (btnNext) btnNext.classList.add('hidden');
@@ -167,19 +188,22 @@ function renderCarousel() {
   const slideItems = [];
   for (let i = 0; i < renderCount; i++) {
     const itemIndex = (currentCarouselIndex + i) % total;
-    slideItems.push({ photoUrl: carouselPhotos[itemIndex], index: itemIndex });
+    slideItems.push({ photo: carouselPhotos[itemIndex], index: itemIndex });
   }
 
-  track.innerHTML = slideItems.map(item => `
-    <div class="p-1" style="width: ${100 / renderCount}%;">
-      <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md">
-        <img src="${item.photoUrl}" alt="사진 ${item.index + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-        <button onclick="deleteCarouselPhoto(${item.index})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
-          <i class="fa-solid fa-trash-can text-xs"></i>
-        </button>
+  track.innerHTML = slideItems.map(item => {
+    const src = typeof item.photo === 'string' ? item.photo : (item.photo.url || item.photo);
+    return `
+      <div class="p-1" style="width: ${100 / renderCount}%;">
+        <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md">
+          <img src="${src}" alt="사진 ${item.index + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+          <button onclick="deleteCarouselPhoto(${item.index})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+          </button>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   if (dotsContainer) {
     dotsContainer.classList.remove('hidden');
@@ -194,69 +218,28 @@ function renderCarousel() {
   }
 }
 
-window.slideNextCarousel = function() {
-  if (isCarouselAnimating) return;
-  const total = carouselPhotos.length;
-  const isMobile = window.innerWidth < 640;
-  const visibleCount = isMobile ? 2 : 4;
-  if (total <= visibleCount) return;
-
-  isCarouselAnimating = true;
-  const track = document.getElementById('carouselTrack');
-  const renderCount = visibleCount + 1;
-  const shiftPercent = 100 / renderCount;
-
-  track.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)';
-  track.style.transform = `translateX(-${shiftPercent}%)`;
-
-  setTimeout(() => {
-    currentCarouselIndex = (currentCarouselIndex + 1) % total;
-    track.style.transition = 'none';
-    track.style.transform = 'translateX(0)';
-    renderCarousel();
-    isCarouselAnimating = false;
-  }, 350);
-};
-
-window.slidePrevCarousel = function() {
-  if (isCarouselAnimating) return;
-  const total = carouselPhotos.length;
-  const isMobile = window.innerWidth < 640;
-  const visibleCount = isMobile ? 2 : 4;
-  if (total <= visibleCount) return;
-
-  isCarouselAnimating = true;
-  const track = document.getElementById('carouselTrack');
-  const renderCount = visibleCount + 1;
-  const shiftPercent = 100 / renderCount;
-
-  currentCarouselIndex = (currentCarouselIndex - 1 + total) % total;
-  track.style.transition = 'none';
-  track.style.transform = `translateX(-${shiftPercent}%)`;
-  renderCarousel();
-
-  void track.offsetWidth; // Force reflow
-
-  track.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)';
-  track.style.transform = 'translateX(0)';
-
-  setTimeout(() => {
-    isCarouselAnimating = false;
-  }, 350);
-};
-
-window.setCarouselIndexDirect = function(index) {
-  if (isCarouselAnimating) return;
-  currentCarouselIndex = index;
-  renderCarousel();
-};
-
-window.deleteCarouselPhoto = function(index) {
+window.deleteCarouselPhoto = async function(index) {
   if (carouselPhotos.length <= 1) {
     alert('최소 1장의 사진은 갤러리에 남아있어야 합니다.');
     return;
   }
+  const targetPhoto = carouselPhotos[index];
+  if (!targetPhoto) return;
+
   if (confirm(`'사진 ${index + 1}'을(를) 갤러리에서 삭제하시겠습니까?`)) {
+    // If photo has Supabase DB ID, delete from Supabase DB
+    if (typeof targetPhoto === 'object' && targetPhoto.id) {
+      try {
+        await fetch('/api/photos/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: targetPhoto.id })
+        });
+      } catch (err) {
+        console.warn('[Supabase DB Delete Warning]', err);
+      }
+    }
+
     carouselPhotos.splice(index, 1);
     if (currentCarouselIndex >= carouselPhotos.length) {
       currentCarouselIndex = 0;
@@ -321,22 +304,30 @@ window.handleCarouselUpload = function(event) {
 
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
-        // Upload photo to backend (saves to public/images/ & auto-commits to GitHub repository!)
+        // Upload photo directly to Supabase DB via POST /api/photos
         try {
-          const res = await fetch('/api/upload-photo', {
+          const res = await fetch('/api/photos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageBase64: compressedDataUrl, fileName: file.name })
+            body: JSON.stringify({
+              photo_name: file.name,
+              photo_data: compressedDataUrl,
+              display_order: carouselPhotos.length + 1
+            })
           });
-          const uploadRes = await res.json();
-          if (uploadRes.success && uploadRes.url) {
-            carouselPhotos.push(uploadRes.url);
+          const dbRes = await res.json();
+          if (dbRes.success && dbRes.photo && dbRes.photo.id) {
+            carouselPhotos.push({
+              id: dbRes.photo.id,
+              url: dbRes.photo.photo_data,
+              name: dbRes.photo.photo_name
+            });
           } else {
-            carouselPhotos.push(compressedDataUrl);
+            carouselPhotos.push({ id: null, url: compressedDataUrl, name: file.name });
           }
         } catch (uploadErr) {
-          console.warn('[Upload Server Warning]', uploadErr);
-          carouselPhotos.push(compressedDataUrl);
+          console.warn('[Supabase Upload Warning] Fallback to local item:', uploadErr);
+          carouselPhotos.push({ id: null, url: compressedDataUrl, name: file.name });
         }
 
         processedCount++;
