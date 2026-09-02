@@ -100,11 +100,13 @@ async function loadCarouselPhotos() {
     if (data.success && Array.isArray(data.photos) && data.photos.length > 0) {
       // Clear old localStorage cache to ensure only Supabase DB images are rendered
       localStorage.removeItem('user_carousel_photos');
+      currentCarouselIndex = 0;
 
       carouselPhotos = data.photos.map(p => ({
         id: p.id,
         url: p.photo_data,
-        name: p.photo_name || '포토 갤러리 이미지'
+        name: p.photo_name || '포토 갤러리 이미지',
+        display_order: p.display_order || 0
       }));
 
       if (dbStatusEl) {
@@ -275,6 +277,18 @@ window.setCarouselIndexDirect = function(index) {
   renderCarousel();
 };
 
+window.refreshCarouselView = function() {
+  currentCarouselIndex = 0;
+  if (Array.isArray(carouselPhotos) && carouselPhotos.length > 0) {
+    carouselPhotos.sort((a, b) => {
+      const orderA = typeof a.display_order === 'number' ? a.display_order : 0;
+      const orderB = typeof b.display_order === 'number' ? b.display_order : 0;
+      return orderB - orderA;
+    });
+  }
+  renderCarousel();
+};
+
 window.deleteCarouselPhoto = async function(index) {
   if (carouselPhotos.length <= 1) {
     alert('최소 1장의 사진은 갤러리에 남아있어야 합니다.');
@@ -378,23 +392,24 @@ window.handleCarouselUpload = function(event) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               photo_name: file.name,
-              photo_data: compressedDataUrl,
-              display_order: carouselPhotos.length + 1
+              photo_data: compressedDataUrl
             })
           });
           const dbRes = await res.json();
           if (dbRes.success && dbRes.photo && dbRes.photo.id) {
-            carouselPhotos.push({
+            console.log('✅ [Supabase DB 사진 추가 성공]:', dbRes.message);
+            carouselPhotos.unshift({
               id: dbRes.photo.id,
               url: dbRes.photo.photo_data,
               name: dbRes.photo.photo_name
             });
           } else {
-            carouselPhotos.push({ id: null, url: compressedDataUrl, name: file.name });
+            console.error('🚨 [Supabase DB 사진 저장 실패]:', dbRes.message);
+            carouselPhotos.unshift({ id: null, url: compressedDataUrl, name: file.name });
           }
         } catch (uploadErr) {
           console.warn('[Supabase Upload Warning] Fallback to local item:', uploadErr);
-          carouselPhotos.push({ id: null, url: compressedDataUrl, name: file.name });
+          carouselPhotos.unshift({ id: null, url: compressedDataUrl, name: file.name });
         }
 
         processedCount++;
