@@ -383,7 +383,14 @@ window.handleCarouselUpload = function(event) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        let quality = 0.85;
+        let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+
+        // Auto-compression safety check: ensure base64 string never exceeds 2.5MB (well below Vercel's 4.5MB limit)
+        while (compressedDataUrl.length > 2500000 && quality > 0.3) {
+          quality -= 0.15;
+          compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
 
         // Upload photo directly to Supabase DB via POST /api/photos
         try {
@@ -621,10 +628,11 @@ function updateAuthUI(authenticated, expiresAt = null) {
     if (dashboardRightPanel) dashboardRightPanel.classList.remove('content-locked');
     if (rightPanelLockOverlay) rightPanelLockOverlay.classList.add('hidden');
 
-    if (authBtnText) authBtnText.textContent = '인증완료';
+    if (authBtnText) authBtnText.textContent = '';
     if (authIcon) authIcon.className = 'fa-solid fa-lock-open text-sm';
     if (btnAuthToggle) {
-      btnAuthToggle.className = 'px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500/30 whitespace-nowrap flex-shrink-0';
+      btnAuthToggle.title = '관리자 인증 완료 (클릭 시 로그아웃/잠금)';
+      btnAuthToggle.className = 'px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500/30 whitespace-nowrap flex-shrink-0 cursor-pointer';
     }
   } else {
     // Blur sensitive areas (Only Calendar & Meal Menu remain visible)
@@ -632,10 +640,11 @@ function updateAuthUI(authenticated, expiresAt = null) {
     if (dashboardRightPanel) dashboardRightPanel.classList.add('content-locked');
     if (rightPanelLockOverlay) rightPanelLockOverlay.classList.remove('hidden');
 
-    if (authBtnText) authBtnText.textContent = '인증하기';
+    if (authBtnText) authBtnText.textContent = '';
     if (authIcon) authIcon.className = 'fa-solid fa-lock text-sm';
     if (btnAuthToggle) {
-      btnAuthToggle.className = 'px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white border border-amber-400/30 whitespace-nowrap flex-shrink-0';
+      btnAuthToggle.title = '관리자 비밀번호 인증하기';
+      btnAuthToggle.className = 'px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm bg-amber-500 hover:bg-amber-600 text-white border border-amber-400/30 whitespace-nowrap flex-shrink-0 cursor-pointer';
     }
   }
 }
@@ -852,12 +861,29 @@ function saveTrackedEmployees() {
   }
 }
 
+window.openTrackedEmpModal = function() {
+  const modal = document.getElementById('trackedEmpModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    renderTrackedEmployeesList();
+  }
+};
+
+window.closeTrackedEmpModal = function() {
+  const modal = document.getElementById('trackedEmpModal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+};
+
 function renderTrackedEmployeesList() {
   const container = document.getElementById('trackedEmployeesList');
   const countEl = document.getElementById('trackedEmpCount');
+  const summaryBadgeEl = document.getElementById('empSummaryTrackedBadge');
   if (!container) return;
 
   if (countEl) countEl.textContent = trackedEmployees.length;
+  if (summaryBadgeEl) summaryBadgeEl.textContent = trackedEmployees.length;
 
   if (trackedEmployees.length === 0) {
     container.innerHTML = `
