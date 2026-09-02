@@ -159,6 +159,7 @@ async function loadCarouselPhotos() {
   }
   renderCarousel();
 }
+window.loadCarouselPhotos = loadCarouselPhotos;
 
 function saveCarouselPhotos() {
   try {

@@ -216,9 +216,8 @@
           </h3>
 
           <div class="flex items-center gap-2">
-            <button onclick="resetCarouselPhotos()" title="기본 이미지 5장 복원" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors flex items-center gap-1.5 cursor-pointer">
-              <i class="fa-solid fa-rotate-left"></i>
-              복원
+            <button onclick="loadCarouselPhotos()" title="포토 갤러리 새로고침" class="w-6 h-6 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors cursor-pointer">
+              <i class="fa-solid fa-rotate-left text-xs"></i>
             </button>
             <input type="file" id="carouselFileInput" accept="image/*" multiple class="hidden" onchange="handleCarouselUpload(event)">
             <button onclick="document.getElementById('carouselFileInput').click()" title="사진 추가" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer flex items-center gap-1.5">
