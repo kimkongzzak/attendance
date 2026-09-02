@@ -398,18 +398,22 @@ window.handleCarouselUpload = function(event) {
           const dbRes = await res.json();
           if (dbRes.success && dbRes.photo && dbRes.photo.id) {
             console.log('✅ [Supabase DB 사진 추가 성공]:', dbRes.message);
+            const newOrder = typeof dbRes.photo.display_order === 'number' ? dbRes.photo.display_order : (Date.now() / 1000);
             carouselPhotos.unshift({
               id: dbRes.photo.id,
               url: dbRes.photo.photo_data,
-              name: dbRes.photo.photo_name
+              name: dbRes.photo.photo_name,
+              display_order: newOrder
             });
           } else {
             console.error('🚨 [Supabase DB 사진 저장 실패]:', dbRes.message);
-            carouselPhotos.unshift({ id: null, url: compressedDataUrl, name: file.name });
+            const maxOrder = carouselPhotos.reduce((max, p) => Math.max(max, p.display_order || 0), 0);
+            carouselPhotos.unshift({ id: null, url: compressedDataUrl, name: file.name, display_order: maxOrder + 10 });
           }
         } catch (uploadErr) {
           console.warn('[Supabase Upload Warning] Fallback to local item:', uploadErr);
-          carouselPhotos.unshift({ id: null, url: compressedDataUrl, name: file.name });
+          const maxOrder = carouselPhotos.reduce((max, p) => Math.max(max, p.display_order || 0), 0);
+          carouselPhotos.unshift({ id: null, url: compressedDataUrl, name: file.name, display_order: maxOrder + 10 });
         }
 
         processedCount++;
