@@ -95,6 +95,9 @@ async function loadCarouselPhotos() {
     const res = await fetch('/api/photos');
     const data = await res.json();
     if (data.success && Array.isArray(data.photos) && data.photos.length > 0) {
+      // Clear old localStorage cache to ensure only Supabase DB images are rendered
+      localStorage.removeItem('user_carousel_photos');
+
       carouselPhotos = data.photos.map(p => ({
         id: p.id,
         url: p.photo_data,
