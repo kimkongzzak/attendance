@@ -256,6 +256,24 @@ function renderCarousel() {
   }
 }
 
+window.slideNextCarousel = function() {
+  if (carouselPhotos.length <= 1) return;
+  currentCarouselIndex = (currentCarouselIndex + 1) % carouselPhotos.length;
+  renderCarousel();
+};
+
+window.slidePrevCarousel = function() {
+  if (carouselPhotos.length <= 1) return;
+  currentCarouselIndex = (currentCarouselIndex - 1 + carouselPhotos.length) % carouselPhotos.length;
+  renderCarousel();
+};
+
+window.setCarouselIndexDirect = function(index) {
+  if (index < 0 || index >= carouselPhotos.length) return;
+  currentCarouselIndex = index;
+  renderCarousel();
+};
+
 window.deleteCarouselPhoto = async function(index) {
   if (carouselPhotos.length <= 1) {
     alert('최소 1장의 사진은 갤러리에 남아있어야 합니다.');

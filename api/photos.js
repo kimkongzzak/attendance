@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
     }
 
     try {
-      const supabaseRes = await axios.get(`${config.url}/rest/v1/gallery_photos?select=*&order=display_order.asc,id.asc`, {
+      const supabaseRes = await axios.get(`${config.url}/rest/v1/gallery_photos?select=*&order=id.desc`, {
         headers: {
           'apikey': config.key,
           'Authorization': `Bearer ${config.key}`
