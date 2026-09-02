@@ -112,16 +112,29 @@ async function loadCarouselPhotos() {
         dbStatusEl.title = `Supabase DB 실시간 연동 완료 (${data.photos.length}장)`;
       }
 
+      console.log('✅ [Supabase DB 로드 성공] DB 사진 수:', data.photos.length, data.photos);
+
       renderCarousel();
       return;
+    }
+
+    // Detailed console output for debugging Supabase connection issues
+    console.error('🚨 [Supabase DB 연동 실패 사유]', {
+      isConfigured: data.isConfigured,
+      httpStatus: data.status || 'N/A',
+      message: data.message || '데이터 없음',
+      detailMsg: data.detailMsg || 'N/A',
+      hint: data.hint || 'N/A',
+      rawResponse: data
+    });
+    if (data.hint) {
+      console.warn('💡 [해결 힌트]:', data.hint);
     }
 
     if (dbStatusEl) {
       dbStatusEl.textContent = '🔴';
       dbStatusEl.title = !data.isConfigured 
         ? 'Supabase DB 미연동 (.env 키 미설정)' 
-        : `Supabase DB 오류 (HTTP ${data.status || 'ERR'})`;
-    }
   } catch (err) {
     console.warn('[Supabase Fetch Notice] Fallback to local storage:', err);
     if (dbStatusEl) {
