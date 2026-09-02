@@ -394,103 +394,165 @@ window.resetCarouselPhotos = function() {
   }
 };
 
+// --- 4:3 Photo Editor Crop Modal Logic ---
+let pendingCropFiles = [];
+let cropCurrentFileIndex = 0;
+let cropperInstance = null;
+const currentAspectValue = 4 / 3; // Fixed 4:3 Landscape Aspect Ratio
+
 window.handleCarouselUpload = function(event) {
-  const files = Array.from(event.target.files);
+  const files = Array.from(event.target.files || []);
   if (files.length === 0) return;
 
-  const maxSizeBytes = MAX_PHOTO_SIZE_MB * 1024 * 1024;
-  const oversized = files.filter(f => f.size > maxSizeBytes);
-
-  if (oversized.length > 0) {
-    alert(`⚠️ 5MB를 초과하는 파일이 ${oversized.length}건 있습니다!\n\n5MB 이하의 사진 파일만 갤러리에 추가할 수 있습니다.`);
-  }
-
+  const maxSizeBytes = 25 * 1024 * 1024; // 25MB
   const validFiles = files.filter(f => f.size <= maxSizeBytes);
   if (validFiles.length === 0) {
+    alert('25MB 이하의 이미지 파일만 업로드 가능합니다.');
     event.target.value = '';
     return;
   }
 
-  let processedCount = 0;
-  validFiles.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const rawDataUrl = e.target.result;
-      const img = new Image();
-      img.onload = async function() {
-        const canvas = document.createElement('canvas');
-        const maxDim = 800;
-        let width = img.width;
-        let height = img.height;
+  pendingCropFiles = validFiles;
+  cropCurrentFileIndex = 0;
+  event.target.value = '';
 
-        if (width > height) {
-          if (width > maxDim) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          }
-        } else {
-          if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
+  loadCropModalForCurrentFile();
+};
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
+function loadCropModalForCurrentFile() {
+  if (cropCurrentFileIndex >= pendingCropFiles.length) {
+    closePhotoCropModal();
+    return;
+  }
 
-        let quality = 0.85;
-        let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+  const file = pendingCropFiles[cropCurrentFileIndex];
+  const counterEl = document.getElementById('cropFileCounter');
+  const btnCropText = document.getElementById('btnCropText');
 
-        // Auto-compression safety check: ensure base64 string never exceeds 2.5MB (well below Vercel's 4.5MB limit)
-        while (compressedDataUrl.length > 2500000 && quality > 0.3) {
-          quality -= 0.15;
-          compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        }
+  if (counterEl) {
+    counterEl.textContent = `${cropCurrentFileIndex + 1} / ${pendingCropFiles.length}`;
+  }
+  if (btnCropText) {
+    btnCropText.textContent = cropCurrentFileIndex < pendingCropFiles.length - 1 ? '자르기 & 다음' : '자르기 & 업로드';
+  }
 
-        // Upload photo directly to Supabase DB via POST /api/photos
-        try {
-          const res = await fetch('/api/photos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              photo_name: file.name,
-              photo_data: compressedDataUrl
-            })
-          });
-          const dbRes = await res.json();
-          if (dbRes.success && dbRes.photo && dbRes.photo.id) {
-            console.log('✅ [Supabase DB 사진 추가 성공]:', dbRes.message);
-            const newOrder = typeof dbRes.photo.display_order === 'number' ? dbRes.photo.display_order : (Date.now() / 1000);
-            carouselPhotos.unshift({
-              id: dbRes.photo.id,
-              url: dbRes.photo.photo_data,
-              name: dbRes.photo.photo_name,
-              display_order: newOrder
-            });
-          } else {
-            console.error('🚨 [Supabase DB 사진 저장 실패]:', dbRes.message);
-            const maxOrder = carouselPhotos.reduce((max, p) => Math.max(max, p.display_order || 0), 0);
-            carouselPhotos.unshift({ id: null, url: compressedDataUrl, name: file.name, display_order: maxOrder + 10 });
-          }
-        } catch (uploadErr) {
-          console.warn('[Supabase Upload Warning] Fallback to local item:', uploadErr);
-          const maxOrder = carouselPhotos.reduce((max, p) => Math.max(max, p.display_order || 0), 0);
-          carouselPhotos.unshift({ id: null, url: compressedDataUrl, name: file.name, display_order: maxOrder + 10 });
-        }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const imageEl = document.getElementById('cropTargetImage');
+    if (!imageEl) return;
 
-        processedCount++;
-        if (processedCount === validFiles.length) {
-          saveCarouselPhotos();
-        }
-      };
-      img.src = rawDataUrl;
-    };
-    reader.readAsDataURL(file);
+    if (cropperInstance) {
+      cropperInstance.destroy();
+      cropperInstance = null;
+    }
+
+    imageEl.src = e.target.result;
+
+    const modal = document.getElementById('photoCropModal');
+    if (modal) modal.classList.remove('hidden');
+
+    cropperInstance = new Cropper(imageEl, {
+      aspectRatio: 4 / 3, // Fixed 4:3
+      viewMode: 1,
+      autoCropArea: 0.9,
+      responsive: true,
+      background: false,
+      zoomable: true,
+      rotatable: true,
+      touchDragZoom: true,
+      mouseWheelZoom: true,
+      cropBoxMovable: true,
+      cropBoxResizable: true
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+window.rotateCropImage = function(degree) {
+  if (cropperInstance) {
+    cropperInstance.rotate(degree);
+  }
+};
+
+window.closePhotoCropModal = function() {
+  if (cropperInstance) {
+    cropperInstance.destroy();
+    cropperInstance = null;
+  }
+  pendingCropFiles = [];
+  cropCurrentFileIndex = 0;
+
+  const modal = document.getElementById('photoCropModal');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.applyPhotoCrop = async function() {
+  if (!cropperInstance) return;
+
+  const file = pendingCropFiles[cropCurrentFileIndex];
+
+  const canvas = cropperInstance.getCroppedCanvas({
+    width: 800,
+    height: 600,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: 'high'
   });
 
-  event.target.value = '';
+  if (!canvas) {
+    alert('이미지 크롭 처리에 실패했습니다.');
+    return;
+  }
+
+  let quality = 0.85;
+  let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+
+  while (compressedDataUrl.length > 2500000 && quality > 0.3) {
+    quality -= 0.15;
+    compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+  }
+
+  const btnApply = document.getElementById('btnApplyCrop');
+  if (btnApply) btnApply.disabled = true;
+
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        photo_name: file ? file.name : '3:4 크롭 이미지',
+        photo_data: compressedDataUrl
+      })
+    });
+    const dbRes = await res.json();
+    if (dbRes.success && dbRes.photo && dbRes.photo.id) {
+      console.log('✅ [Supabase DB 3:4 사진 크롭 추가 성공]:', dbRes.message);
+      const newOrder = typeof dbRes.photo.display_order === 'number' ? dbRes.photo.display_order : (Date.now() / 1000);
+      carouselPhotos.unshift({
+        id: dbRes.photo.id,
+        url: dbRes.photo.photo_data,
+        name: dbRes.photo.photo_name,
+        display_order: newOrder
+      });
+    } else {
+      console.error('🚨 [Supabase DB 3:4 사진 저장 실패]:', dbRes.message);
+      const maxOrder = carouselPhotos.reduce((max, p) => Math.max(max, p.display_order || 0), 0);
+      carouselPhotos.unshift({ id: null, url: compressedDataUrl, name: file ? file.name : '3:4 크롭 이미지', display_order: maxOrder + 10 });
+    }
+  } catch (uploadErr) {
+    console.warn('[Supabase Upload Warning] Fallback to local item:', uploadErr);
+    const maxOrder = carouselPhotos.reduce((max, p) => Math.max(max, p.display_order || 0), 0);
+    carouselPhotos.unshift({ id: null, url: compressedDataUrl, name: file ? file.name : '3:4 크롭 이미지', display_order: maxOrder + 10 });
+  } finally {
+    if (btnApply) btnApply.disabled = false;
+    saveCarouselPhotos();
+
+    cropCurrentFileIndex++;
+    if (cropCurrentFileIndex < pendingCropFiles.length) {
+      loadCropModalForCurrentFile();
+    } else {
+      closePhotoCropModal();
+    }
+  }
 };
 
 // --- Photo Gallery Manage Modal Functions (View All, Reorder, Delete) ---
