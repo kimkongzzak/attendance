@@ -1182,7 +1182,7 @@ function renderEmpSummaryDBTable() {
     tbody.innerHTML = `
       <tr>
         <td colspan="9" class="py-6 text-center text-slate-400">
-          등록된 관리 대상 임직원이 없습니다.
+          등록된 우리 편이 없습니다.
         </td>
       </tr>
     `;
@@ -1253,7 +1253,7 @@ window.toggleEmpFilter = function(cardId) {
     clearBtn.classList.remove('hidden');
     clearBtn.classList.add('flex');
     const targetEmp = trackedEmployees.find(e => e.cardId === selectedEmpFilter);
-    document.getElementById('tableFilterNotice').textContent = `[${targetEmp ? targetEmp.empName : selectedEmpFilter}] 님의 근태 태깅 내역 필터링 중입니다.`;
+    document.getElementById('tableFilterNotice').textContent = `[${targetEmp ? targetEmp.empName : selectedEmpFilter}] 님의 태깅 현황 구경 중`;
   } else {
     clearBtn.classList.add('hidden');
     clearBtn.classList.remove('flex');
