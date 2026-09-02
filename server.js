@@ -22,6 +22,9 @@ function getSupabaseConfig() {
   return { url, key, isConfigured: Boolean(url && key) };
 }
 
+const https = require('https');
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+
 // GET /api/photos - Fetch all photos from Supabase DB (gallery_photos table) with full diagnostics
 app.get('/api/photos', async (req, res) => {
   const config = getSupabaseConfig();
@@ -40,7 +43,8 @@ app.get('/api/photos', async (req, res) => {
       headers: {
         'apikey': config.key,
         'Authorization': `Bearer ${config.key}`
-      }
+      },
+      httpsAgent
     });
     return res.json({
       success: true,
@@ -92,7 +96,8 @@ app.post('/api/photos', async (req, res) => {
         'Authorization': `Bearer ${config.key}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
-      }
+      },
+      httpsAgent
     });
 
     const newPhoto = supabaseRes.data && supabaseRes.data[0] ? supabaseRes.data[0] : supabaseRes.data;
@@ -135,7 +140,8 @@ app.post('/api/photos/delete', async (req, res) => {
       headers: {
         'apikey': config.key,
         'Authorization': `Bearer ${config.key}`
-      }
+      },
+      httpsAgent
     });
     return res.json({
       success: true,

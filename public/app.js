@@ -135,8 +135,10 @@ async function loadCarouselPhotos() {
       dbStatusEl.textContent = '🔴';
       dbStatusEl.title = !data.isConfigured 
         ? 'Supabase DB 미연동 (.env 키 미설정)' 
+        : `Supabase DB 오류 (HTTP ${data.status || 'ERR'})`;
+    }
   } catch (err) {
-    console.warn('[Supabase Fetch Notice] Fallback to local storage:', err);
+    console.error('🚨 [Supabase API 통신 네트워크/서버 에러]:', err);
     if (dbStatusEl) {
       dbStatusEl.textContent = '🔴';
       dbStatusEl.title = 'Supabase API 통신 오류 (로컬 이미지 표시 중)';

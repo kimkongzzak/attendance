@@ -1,4 +1,6 @@
 const axios = require('axios');
+const https = require('https');
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -39,7 +41,8 @@ module.exports = async (req, res) => {
         headers: {
           'apikey': config.key,
           'Authorization': `Bearer ${config.key}`
-        }
+        },
+        httpsAgent
       });
       return res.status(200).json({
         success: true,
@@ -83,7 +86,8 @@ module.exports = async (req, res) => {
           headers: {
             'apikey': config.key,
             'Authorization': `Bearer ${config.key}`
-          }
+          },
+          httpsAgent
         });
         return res.status(200).json({
           success: true,
@@ -116,7 +120,8 @@ module.exports = async (req, res) => {
           'Authorization': `Bearer ${config.key}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
-        }
+        },
+        httpsAgent
       });
 
       const newPhoto = supabaseRes.data && supabaseRes.data[0] ? supabaseRes.data[0] : supabaseRes.data;
