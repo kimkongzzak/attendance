@@ -211,29 +211,20 @@
           <h3 class="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
             <i class="fa-solid fa-images text-amber-500"></i>
             <span>포토 갤러리</span>
-            <span id="carouselCountBadge" class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold">4장</span>
+            <span id="carouselCountBadge" class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold">0장</span>
+            <span id="carouselDbStatus" class="text-xs ml-0.5 select-none cursor-help" title="Supabase DB 미연동 (기본 이미지)">🔴</span>
           </h3>
 
-        <div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700/60" id="carouselHeaderContainer">
           <div class="flex items-center gap-2">
-            <h3 class="font-bold text-slate-800 dark:text-slate-100 text-[18px] tracking-tight">포토 갤러리</h3>
-            <div class="flex items-center gap-1">
-              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/60" id="carouselCount">
-                0장
-              </span>
-              <span id="carouselDbStatus" class="text-xs ml-0.5 select-none cursor-help" title="Supabase DB 미연동 (기본 이미지)">🔴</span>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <button id="btnRestoreCarouselDefault" title="기본 이미지 5장 복원" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors flex items-center gap-1.5 cursor-pointer">
+            <button onclick="resetCarouselPhotos()" title="기본 이미지 5장 복원" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors flex items-center gap-1.5 cursor-pointer">
               <i class="fa-solid fa-rotate-left"></i>
               복원
             </button>
-            <label for="carouselFileInput" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer flex items-center gap-1.5">
+            <input type="file" id="carouselFileInput" accept="image/*" multiple class="hidden" onchange="handleCarouselUpload(event)">
+            <button onclick="document.getElementById('carouselFileInput').click()" title="사진 추가" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer flex items-center gap-1.5">
               <i class="fa-solid fa-plus text-xs"></i>
               사진 추가
-            </label>
-            <input type="file" id="carouselFileInput" accept="image/*" multiple class="hidden" />
+            </button>
             <button id="btnToggleCarousel" title="접기/펼치기" class="w-6 h-6 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors cursor-pointer">
               <i class="fa-solid fa-chevron-up text-xs transition-transform duration-200" id="carouselChevron"></i>
             </button>
