@@ -22,14 +22,15 @@ function getSupabaseConfig() {
   return { url, key, isConfigured: Boolean(url && key) };
 }
 
-// GET /api/photos - Fetch all photos from Supabase DB (gallery_photos table)
+// GET /api/photos - Fetch all photos from Supabase DB (gallery_photos table) with full diagnostics
 app.get('/api/photos', async (req, res) => {
   const config = getSupabaseConfig();
   if (!config.isConfigured) {
     return res.json({
       success: false,
       isConfigured: false,
-      message: 'Supabase URL 및 API Key가 설정되지 않았습니다.',
+      message: 'SUPABASE_URL 또는 SUPABASE_ANON_KEY가 .env 파일에 설정되지 않았습니다.',
+      hint: '.env 파일 또는 Vercel 환경변수에 SUPABASE_URL 및 SUPABASE_ANON_KEY를 추가하고 서버를 재시작하세요.',
       photos: []
     });
   }
@@ -47,12 +48,17 @@ app.get('/api/photos', async (req, res) => {
       photos: supabaseRes.data || []
     });
   } catch (err) {
-    console.error('[Supabase GET /api/photos Error]', err.response ? err.response.data : err.message);
-    return res.status(500).json({
+    const status = err.response ? err.response.status : 'ERR';
+    const detailMsg = err.response && err.response.data ? JSON.stringify(err.response.data) : err.message;
+    console.error('[Supabase GET /api/photos Error]', detailMsg);
+
+    return res.json({
       success: false,
       isConfigured: true,
-      message: 'Supabase DB에서 사진을 조회하지 못했습니다.',
-      error: err.message,
+      status: status,
+      message: `Supabase DB 연동 실패 (HTTP ${status})`,
+      detailMsg: detailMsg,
+      hint: status === 401 ? 'ANON KEY 권한 오류 (JWT Key 불일치)' : status === 404 ? 'gallery_photos 테이블이 없음 (SQL 스크립트 실행 필요)' : 'Supabase 연결 상태 및 URL 확인 필요',
       photos: []
     });
   }

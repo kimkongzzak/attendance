@@ -90,10 +90,14 @@ let currentCarouselIndex = 0;
 let isCarouselAnimating = false;
 
 async function loadCarouselPhotos() {
+  const noticeEl = document.getElementById('photoGalleryStatusNotice');
+  const noticeText = document.getElementById('photoGalleryStatusText');
+
   // First try fetching from Supabase DB via /api/photos
   try {
     const res = await fetch('/api/photos');
     const data = await res.json();
+
     if (data.success && Array.isArray(data.photos) && data.photos.length > 0) {
       // Clear old localStorage cache to ensure only Supabase DB images are rendered
       localStorage.removeItem('user_carousel_photos');
@@ -103,11 +107,60 @@ async function loadCarouselPhotos() {
         url: p.photo_data,
         name: p.photo_name || '포토 갤러리 이미지'
       }));
+
+      if (noticeEl && noticeText) {
+        noticeEl.classList.remove('hidden', 'bg-amber-50', 'bg-rose-50', 'text-amber-800', 'text-rose-800', 'border-amber-300', 'border-rose-400');
+        noticeEl.classList.add('bg-emerald-50', 'dark:bg-emerald-950/60', 'text-emerald-800', 'dark:text-emerald-300', 'border', 'border-emerald-200', 'dark:border-emerald-800');
+        noticeText.innerHTML = `
+          <i class="fa-solid fa-circle-check text-emerald-500 text-sm mt-0.5 flex-shrink-0"></i>
+          <div>
+            <span class="font-bold">🟢 Supabase DB 실시간 연동 성공</span> (${data.photos.length}장의 DB 이미지 연동 중)
+          </div>
+        `;
+      }
+
       renderCarousel();
       return;
     }
+
+    // Diagnostics if Supabase is not configured or returned error
+    if (noticeEl && noticeText) {
+      noticeEl.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
+
+      if (!data.isConfigured) {
+        noticeEl.classList.add('bg-amber-50', 'dark:bg-amber-950/60', 'text-amber-900', 'dark:text-amber-200', 'border', 'border-amber-300', 'dark:border-amber-700/80');
+        noticeText.innerHTML = `
+          <i class="fa-solid fa-triangle-exclamation text-amber-500 text-sm mt-0.5 flex-shrink-0"></i>
+          <div>
+            <span class="font-bold">⚠️ Supabase DB 미연동 (환경변수 미설정)</span><br>
+            <span class="text-[11px] font-normal text-amber-800 dark:text-amber-300">${data.message || '.env 파일에 SUPABASE_URL 및 SUPABASE_ANON_KEY를 추가해주세요.'}</span><br>
+            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-mono">${data.hint || '로컬 폴더(/images) 이미지가 임시로 표시됩니다.'}</span>
+          </div>
+        `;
+      } else {
+        noticeEl.classList.add('bg-rose-50', 'dark:bg-rose-950/60', 'text-rose-900', 'dark:text-rose-200', 'border-2', 'border-rose-400', 'dark:border-rose-600');
+        noticeText.innerHTML = `
+          <i class="fa-solid fa-circle-exclamation text-rose-500 text-sm mt-0.5 flex-shrink-0"></i>
+          <div>
+            <span class="font-bold">🚨 Supabase DB 연동 오류 [HTTP ${data.status || 'ERR'}]</span><br>
+            <span class="text-[11px] font-semibold text-rose-800 dark:text-rose-200">${data.message || 'Supabase 연결에 실패했습니다.'}</span><br>
+            <span class="text-[11px] font-mono text-rose-600 dark:text-rose-400 font-bold">힌트: ${data.hint || 'SUPABASE_URL 및 ANON_KEY 값을 확인해주세요.'}</span>
+          </div>
+        `;
+      }
+    }
   } catch (err) {
     console.warn('[Supabase Fetch Notice] Fallback to local storage:', err);
+    if (noticeEl && noticeText) {
+      noticeEl.classList.remove('hidden');
+      noticeEl.classList.add('bg-rose-50', 'dark:bg-rose-950/60', 'text-rose-900', 'dark:text-rose-200', 'border-2', 'border-rose-400');
+      noticeText.innerHTML = `
+        <i class="fa-solid fa-triangle-exclamation text-rose-500 text-sm mt-0.5 flex-shrink-0"></i>
+        <div>
+          <span class="font-bold">🚨 Supabase API 호출 에러</span>: ${err.message}
+        </div>
+      `;
+    }
   }
 
   // Fallback to local storage or defaults if Supabase is not configured yet
