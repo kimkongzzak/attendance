@@ -159,6 +159,37 @@
         </div>
       </div>
 
+      <!-- Live Recent Comments Card (UNIFIED UNIFORM BASE TITLE SIZE) -->
+      <div class="theme-card rounded-2xl p-4 shadow-sm">
+        <div class="flex items-center justify-between select-none mb-3">
+          <h3 class="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+            <span class="text-sm">💬</span>
+            <span>실시간 댓글</span>
+          </h3>
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <button id="btnRefreshLiveComments" onclick="refreshLiveComments()" title="실시간 댓글 재조회" class="w-6 h-6 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors flex items-center justify-center text-xs cursor-pointer flex-shrink-0">
+              <i class="fa-solid fa-rotate-left" id="iconRefreshLiveComments"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Comments Container (1-line table row list) -->
+        <div id="liveCommentsContainer" class="flex flex-col gap-1.5 min-h-[60px]">
+          <!-- Rendered via JS -->
+          <div class="py-4 text-center text-slate-400 text-xs">
+            <i class="fa-solid fa-spinner fa-spin"></i> 실시간 댓글을 불러오는 중...
+          </div>
+        </div>
+
+        <!-- Load More Button (+5 more) -->
+        <div class="mt-3 text-center" id="liveCommentsLoadMoreWrapper">
+          <button id="btnLoadMoreLiveComments" onclick="loadMoreLiveComments()" class="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/50 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 text-xs font-bold transition-all border border-slate-200 dark:border-slate-700/60 cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs">
+            <span>더보기 (5개 더 보기)</span>
+            <i class="fa-solid fa-chevron-down text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+
     </aside>
 
     <!-- Right Content Panel (9 cols) -->
@@ -603,6 +634,17 @@
           <div class="py-4 text-center text-slate-400 text-xs">
             💬 첫 번째 댓글을 남겨보세요!
           </div>
+        </div>
+
+        <!-- Reply Target Indicator Badge -->
+        <div id="replyTargetBadge" class="hidden items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold flex-shrink-0 mt-1">
+          <span class="flex items-center gap-1.5 truncate">
+            <i class="fa-solid fa-reply rotate-180 text-xs"></i>
+            <span id="replyTargetName">@작성자 님에게 답글 작성 중...</span>
+          </span>
+          <button type="button" onclick="cancelReplyTarget()" class="text-xs text-slate-400 hover:text-rose-500 font-bold ml-2 cursor-pointer flex-shrink-0">
+            취소 ✕
+          </button>
         </div>
 
         <!-- Add Comment Input Form (Increased Height h-10) -->

@@ -73,9 +73,11 @@ app.post('/api/photos', async (req, res) => {
   const config = getSupabaseConfig();
   const { action, id, photo_name, photo_data, display_order } = req.body || {};
 
-  // LIKE Action
+  // LIKE Action (Supports RPC Atomic Increment & Delta Batching)
   if (action === 'like') {
     const targetPhotoId = id || req.body.photo_id;
+    const delta = parseInt(req.body.delta || 1, 10) || 1;
+
     if (!targetPhotoId) {
       return res.status(400).json({ success: false, message: 'photo_id 가 필요합니다.' });
     }
@@ -85,9 +87,88 @@ app.post('/api/photos', async (req, res) => {
     }
 
     try {
+      let newLikes = null;
+
+      // 1. Try Supabase RPC atomic function first (100% Concurrency Safe)
+      try {
+        const rpcRes = await axios.post(`${config.url}/rest/v1/rpc/increment_photo_likes`, {
+          p_photo_id: targetPhotoId,
+          p_count: delta
+        }, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Content-Type': 'application/json'
+          },
+          httpsAgent
+        });
+        if (typeof rpcRes.data === 'number') {
+          newLikes = rpcRes.data;
+        }
+      } catch (rpcErr) {
+        // RPC fallback
+      }
+
+      // 2. Fallback to REST fetch & patch if RPC function is not created yet
+      if (newLikes === null) {
+        let currentLikes = 0;
+        try {
+          const fetchRes = await axios.get(`${config.url}/rest/v1/gallery_photos?id=eq.${targetPhotoId}&select=like_count`, {
+            headers: {
+              'apikey': config.key,
+              'Authorization': `Bearer ${config.key}`
+            },
+            httpsAgent
+          });
+          if (fetchRes.data && fetchRes.data.length > 0 && typeof fetchRes.data[0].like_count === 'number') {
+            currentLikes = fetchRes.data[0].like_count;
+          }
+        } catch (e) {}
+
+        newLikes = currentLikes + delta;
+        await axios.patch(`${config.url}/rest/v1/gallery_photos?id=eq.${targetPhotoId}`, {
+          like_count: newLikes
+        }, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          httpsAgent
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        photo_id: targetPhotoId,
+        like_count: newLikes,
+        delta: delta,
+        message: '좋아요가 성공적으로 반영되었습니다.'
+      });
+    } catch (err) {
+      console.error('[Supabase Like Photo Error]', err.response ? err.response.data : err.message);
+      return res.status(500).json({ success: false, message: '좋아요 처리 실패', error: err.message });
+    }
+  }
+
+  // LIKE COMMENT Action
+  if (action === 'like_comment') {
+    const commentId = id || req.body.comment_id;
+    const delta = parseInt(req.body.delta || 1, 10) || 1;
+
+    if (!commentId) {
+      return res.status(400).json({ success: false, message: 'comment_id 가 필요합니다.' });
+    }
+
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: false, isConfigured: false, message: 'Supabase 미설정' });
+    }
+
+    try {
       let currentLikes = 0;
       try {
-        const fetchRes = await axios.get(`${config.url}/rest/v1/gallery_photos?id=eq.${targetPhotoId}&select=like_count`, {
+        const fetchRes = await axios.get(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}&select=like_count`, {
           headers: {
             'apikey': config.key,
             'Authorization': `Bearer ${config.key}`
@@ -99,8 +180,8 @@ app.post('/api/photos', async (req, res) => {
         }
       } catch (e) {}
 
-      const newLikes = currentLikes + 1;
-      await axios.patch(`${config.url}/rest/v1/gallery_photos?id=eq.${targetPhotoId}`, {
+      const newLikes = currentLikes + delta;
+      await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
         like_count: newLikes
       }, {
         headers: {
@@ -114,13 +195,39 @@ app.post('/api/photos', async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        photo_id: targetPhotoId,
+        comment_id: commentId,
         like_count: newLikes,
-        message: '좋아요가 반영되었습니다.'
+        delta: delta,
+        message: '댓글 좋아요가 반영되었습니다.'
       });
     } catch (err) {
-      console.error('[Supabase Like Photo Error]', err.response ? err.response.data : err.message);
-      return res.status(500).json({ success: false, message: '좋아요 처리 실패', error: err.message });
+      console.error('[Supabase Like Comment Error]', err.response ? err.response.data : err.message);
+      return res.status(500).json({ success: false, message: '댓글 좋아요 처리 실패', error: err.message });
+    }
+  }
+
+  // RECENT COMMENTS Action (Fetches all recent comments for Live Comments card)
+  if (action === 'recent_comments') {
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: false, isConfigured: false, comments: [] });
+    }
+
+    try {
+      const commentsRes = await axios.get(`${config.url}/rest/v1/gallery_comments?select=*&order=created_at.desc&limit=100`, {
+        headers: {
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`
+        },
+        httpsAgent
+      });
+
+      return res.status(200).json({
+        success: true,
+        comments: commentsRes.data || []
+      });
+    } catch (err) {
+      console.error('[Supabase Recent Comments Error]', err.response ? err.response.data : err.message);
+      return res.status(200).json({ success: false, comments: [], error: err.message });
     }
   }
 
@@ -154,10 +261,10 @@ app.post('/api/photos', async (req, res) => {
     }
   }
 
-  // ADD COMMENT Action
+  // ADD COMMENT Action (Supports parent_id for nested child comments/replies)
   if (action === 'add_comment') {
     const targetPhotoId = id || req.body.photo_id;
-    const { writer, comment } = req.body || {};
+    const { writer, comment, parent_id } = req.body || {};
 
     if (!targetPhotoId || !comment) {
       return res.status(400).json({ success: false, message: 'photo_id 및 comment 내용이 필요합니다.' });
@@ -168,11 +275,16 @@ app.post('/api/photos', async (req, res) => {
     }
 
     try {
-      const insertRes = await axios.post(`${config.url}/rest/v1/gallery_comments`, {
+      const payload = {
         photo_id: targetPhotoId,
         writer: writer || '익명 강아지',
         comment: comment
-      }, {
+      };
+      if (parent_id) {
+        payload.parent_id = parent_id;
+      }
+
+      const insertRes = await axios.post(`${config.url}/rest/v1/gallery_comments`, payload, {
         headers: {
           'apikey': config.key,
           'Authorization': `Bearer ${config.key}`,

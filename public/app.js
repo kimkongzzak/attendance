@@ -196,24 +196,45 @@ function renderCarousel() {
   const isMobile = window.innerWidth < 640;
   const visibleCount = isMobile ? 2 : 4;
 
+  const createSlideHtml = (photo, idx, widthPercent) => {
+    const realIndex = idx % total;
+    const src = typeof photo === 'string' ? photo : (photo.url || photo);
+    const photoObj = carouselPhotos[realIndex] || {};
+    const photoId = photoObj.id;
+    const likes = typeof photoObj.like_count === 'number' ? photoObj.like_count : 0;
+    const commentsCount = photoId ? allLiveComments.filter(c => String(c.photo_id) === String(photoId)).length : 0;
+
+    return `
+      <div class="p-1" style="width: ${widthPercent}%;">
+        <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md cursor-pointer select-none" onclick="openPhotoPreviewModal(${realIndex})">
+          <img src="${src}" alt="사진 ${realIndex + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+          
+          <!-- Overlaid White Badge: Like & Comment Stats -->
+          <div class="absolute bottom-2 left-2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-extrabold shadow-md border border-white/20 flex items-center gap-2 select-none">
+            <span class="flex items-center gap-1 text-rose-400">
+              <i class="fa-solid fa-heart text-[10px]"></i>
+              <span>${likes}</span>
+            </span>
+            <span class="flex items-center gap-1 text-amber-400">
+              <i class="fa-solid fa-comment text-[10px]"></i>
+              <span>${commentsCount}</span>
+            </span>
+          </div>
+
+          <!-- Delete Button (Only on Hover) -->
+          <button onclick="event.stopPropagation(); deleteCarouselPhoto(${realIndex})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  };
+
   if (total <= visibleCount) {
     track.style.transition = 'none';
     track.style.transform = 'translate3d(0, 0, 0)';
     track.style.width = '100%';
-
-    track.innerHTML = carouselPhotos.map((photo, idx) => {
-      const src = typeof photo === 'string' ? photo : (photo.url || photo);
-      return `
-        <div class="p-1" style="width: ${100 / visibleCount}%;">
-          <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md cursor-pointer" onclick="openPhotoPreviewModal(${idx})">
-            <img src="${src}" alt="사진 ${idx + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-            <button onclick="event.stopPropagation(); deleteCarouselPhoto(${idx})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
-              <i class="fa-solid fa-trash-can text-xs"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
+    track.innerHTML = carouselPhotos.map((photo, idx) => createSlideHtml(photo, idx, 100 / visibleCount)).join('');
 
     if (btnPrev) btnPrev.classList.add('hidden');
     if (btnNext) btnNext.classList.add('hidden');
@@ -224,30 +245,12 @@ function renderCarousel() {
   if (btnPrev) btnPrev.classList.remove('hidden');
   if (btnNext) btnNext.classList.remove('hidden');
 
-  // Infinite Track: Original photos + cloned first visibleCount photos
   const fullList = [...carouselPhotos, ...carouselPhotos.slice(0, visibleCount)];
   const totalItems = fullList.length;
   const itemPercent = 100 / totalItems;
 
   track.style.width = `${(totalItems / visibleCount) * 100}%`;
-
-  // Render HTML track only if length changed to preserve DOM nodes for smooth CSS transform
-  if (track.children.length !== totalItems) {
-    track.innerHTML = fullList.map((photo, idx) => {
-      const realIndex = idx % total;
-      const src = typeof photo === 'string' ? photo : (photo.url || photo);
-      return `
-        <div class="p-1" style="width: ${itemPercent}%;">
-          <div class="theme-card rounded-2xl overflow-hidden shadow-sm aspect-[4/3] group relative transition-all duration-200 hover:shadow-md cursor-pointer" onclick="openPhotoPreviewModal(${realIndex})">
-            <img src="${src}" alt="사진 ${realIndex + 1}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-            <button onclick="event.stopPropagation(); deleteCarouselPhoto(${realIndex})" title="사진 삭제" class="absolute top-2.5 right-2.5 w-8 h-8 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md backdrop-blur-sm">
-              <i class="fa-solid fa-trash-can text-xs"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
+  track.innerHTML = fullList.map((photo, idx) => createSlideHtml(photo, idx, itemPercent)).join('');
 
   updateCarouselTrackTransform(currentCarouselIndex, true);
 
@@ -802,31 +805,63 @@ function updatePhotoPreviewContent() {
   }
 }
 
-window.togglePhotoLike = async function() {
+let likeDebounceTimers = {};
+let pendingLikeDeltas = {};
+
+window.togglePhotoLike = function() {
   const photo = carouselPhotos[currentPreviewIndex];
   if (!photo) return;
 
-  // Optimistic UI update
+  const photoId = photo.id;
+
+  // 1. Optimistic UI update (Instant 60fps counter tick up & heart pop animation)
   photo.like_count = (photo.like_count || 0) + 1;
   const likeCountEl = document.getElementById('previewLikeCount');
   if (likeCountEl) likeCountEl.textContent = photo.like_count;
 
-  if (photo.id) {
+  // Pop animation effect on heart button
+  const btnLike = document.getElementById('btnPreviewLike');
+  if (btnLike) {
+    btnLike.classList.remove('scale-110');
+    void btnLike.offsetWidth;
+    btnLike.classList.add('scale-110');
+    setTimeout(() => btnLike.classList.remove('scale-110'), 150);
+  }
+
+  if (!photoId) return;
+
+  // 2. Accumulate delta for batched atomic backend sync
+  pendingLikeDeltas[photoId] = (pendingLikeDeltas[photoId] || 0) + 1;
+
+  // 3. Debounce network request (send total batch delta 400ms after last click)
+  if (likeDebounceTimers[photoId]) {
+    clearTimeout(likeDebounceTimers[photoId]);
+  }
+
+  likeDebounceTimers[photoId] = setTimeout(async () => {
+    const deltaToSend = pendingLikeDeltas[photoId];
+    delete pendingLikeDeltas[photoId];
+    delete likeDebounceTimers[photoId];
+
+    if (!deltaToSend || deltaToSend <= 0) return;
+
     try {
       const res = await fetch('/api/photos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'like', photo_id: photo.id })
+        body: JSON.stringify({ action: 'like', photo_id: photoId, delta: deltaToSend })
       });
       const data = await res.json();
       if (data && data.success && typeof data.like_count === 'number') {
         photo.like_count = data.like_count;
-        if (likeCountEl) likeCountEl.textContent = photo.like_count;
+        if (likeCountEl && carouselPhotos[currentPreviewIndex] && carouselPhotos[currentPreviewIndex].id === photoId) {
+          likeCountEl.textContent = photo.like_count;
+        }
       }
     } catch (err) {
-      console.warn('🚨 [좋아요 API 호출 에러]:', err);
+      console.warn('🚨 [좋아요 배치 원자적 반영 에러]:', err);
     }
-  }
+  }, 400);
 };
 
 async function fetchAndRenderPhotoComments(photoId) {
@@ -856,14 +891,108 @@ async function fetchAndRenderPhotoComments(photoId) {
   }
 }
 
+let currentPhotoComments = [];
+let commentLikeDebounceTimers = {};
+let pendingCommentLikeDeltas = {};
+
+window.toggleCommentLike = function(commentId, event) {
+  if (event) event.stopPropagation();
+  if (!commentId) return;
+
+  const commentObj = currentPhotoComments.find(c => String(c.id) === String(commentId));
+  if (!commentObj) return;
+
+  // 1. Optimistic UI update (Instant 60fps counter tick up)
+  commentObj.like_count = (commentObj.like_count || 0) + 1;
+  const countEl = document.getElementById(`commentLikeCount_${commentId}`);
+  if (countEl) countEl.textContent = commentObj.like_count;
+
+  // Pop animation effect on comment like button
+  const btnEl = document.getElementById(`btnCommentLike_${commentId}`);
+  if (btnEl) {
+    btnEl.classList.remove('scale-110');
+    void btnEl.offsetWidth;
+    btnEl.classList.add('scale-110');
+    setTimeout(() => btnEl.classList.remove('scale-110'), 150);
+  }
+
+  // 2. Accumulate delta for batched atomic backend sync
+  pendingCommentLikeDeltas[commentId] = (pendingCommentLikeDeltas[commentId] || 0) + 1;
+
+  // 3. Debounce network request (send total batch delta 400ms after last click)
+  if (commentLikeDebounceTimers[commentId]) {
+    clearTimeout(commentLikeDebounceTimers[commentId]);
+  }
+
+  commentLikeDebounceTimers[commentId] = setTimeout(async () => {
+    const deltaToSend = pendingCommentLikeDeltas[commentId];
+    delete pendingCommentLikeDeltas[commentId];
+    delete commentLikeDebounceTimers[commentId];
+
+    if (!deltaToSend || deltaToSend <= 0) return;
+
+    try {
+      const res = await fetch('/api/photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'like_comment', comment_id: commentId, delta: deltaToSend })
+      });
+      const data = await res.json();
+      if (data && data.success && typeof data.like_count === 'number') {
+        commentObj.like_count = data.like_count;
+        if (countEl) countEl.textContent = commentObj.like_count;
+      }
+    } catch (err) {
+      console.warn('🚨 [댓글 좋아요 배치 원자적 반영 에러]:', err);
+    }
+  }, 400);
+};
+
+let activeReplyParentId = null;
+
+window.setReplyTarget = function(commentId, writerName, event) {
+  if (event) event.stopPropagation();
+  activeReplyParentId = commentId;
+
+  const badge = document.getElementById('replyTargetBadge');
+  const targetName = document.getElementById('replyTargetName');
+  const textInput = document.getElementById('commentTextInput');
+
+  if (targetName) targetName.textContent = `@${writerName} 님에게 답글 작성 중...`;
+  if (badge) {
+    badge.classList.remove('hidden');
+    badge.classList.add('flex');
+  }
+  if (textInput) {
+    textInput.focus();
+    textInput.placeholder = `@${writerName} 님에게 답글 남기는 중... 🐶`;
+  }
+};
+
+window.cancelReplyTarget = function() {
+  activeReplyParentId = null;
+
+  const badge = document.getElementById('replyTargetBadge');
+  const textInput = document.getElementById('commentTextInput');
+
+  if (badge) {
+    badge.classList.add('hidden');
+    badge.classList.remove('flex');
+  }
+  if (textInput) {
+    textInput.placeholder = '댓글을 입력하세요... 🐶';
+  }
+};
+
 function renderPhotoCommentsList(comments) {
+  currentPhotoComments = Array.isArray(comments) ? comments : [];
   const listEl = document.getElementById('previewCommentsList');
   const badgeEl = document.getElementById('previewCommentCountBadge');
 
-  if (badgeEl) badgeEl.textContent = comments.length;
+  if (badgeEl) badgeEl.textContent = currentPhotoComments.length;
   if (!listEl) return;
 
-  if (comments.length === 0) {
+  if (currentPhotoComments.length === 0) {
     listEl.innerHTML = `
       <div class="py-4 text-center text-slate-400 text-xs">
         💬 등록된 댓글이 없습니다. 첫 번째 댓글을 남겨보세요! 🐶
@@ -872,29 +1001,80 @@ function renderPhotoCommentsList(comments) {
     return;
   }
 
-  // Sort ascending by created_at (oldest at top, newest at bottom)
-  const sortedComments = [...comments].sort((a, b) => {
+  // 1. Sort chronological ASC
+  const sorted = [...currentPhotoComments].sort((a, b) => {
     const timeA = new Date(a.created_at || 0).getTime();
     const timeB = new Date(b.created_at || 0).getTime();
     return timeA - timeB;
   });
 
-  listEl.innerHTML = sortedComments.map(c => `
-    <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-amber-400/50 transition-colors">
-      <span class="w-20 sm:w-24 font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1 text-[11px] truncate flex-shrink-0">
-        <i class="fa-solid fa-paw text-[9px]"></i>
-        <span class="truncate">${escapeHtml(c.writer || '익명 강아지')}</span>
-      </span>
+  // 2. Group into parent-child hierarchy
+  const commentMap = {};
+  const rootComments = [];
+  const itemsToRender = [];
 
-      <span class="flex-1 text-xs text-slate-800 dark:text-slate-200 font-medium truncate px-1" title="${escapeHtml(c.comment)}">
-        ${escapeHtml(c.comment)}
-      </span>
+  sorted.forEach(c => {
+    c.children = [];
+    commentMap[c.id] = c;
+  });
 
-      <span class="w-24 sm:w-28 text-[10px] text-slate-400 font-mono text-right flex-shrink-0">
-        ${formatCommentDate(c.created_at)}
-      </span>
-    </div>
-  `).join('');
+  sorted.forEach(c => {
+    if (c.parent_id && commentMap[c.parent_id]) {
+      commentMap[c.parent_id].children.push(c);
+    } else {
+      rootComments.push(c);
+    }
+  });
+
+  // Flatten tree into depth order
+  function flattenNode(node, depth = 0) {
+    node.depth = depth;
+    itemsToRender.push(node);
+    if (Array.isArray(node.children)) {
+      node.children.forEach(child => flattenNode(child, depth + 1));
+    }
+  }
+
+  rootComments.forEach(r => flattenNode(r, 0));
+
+  listEl.innerHTML = itemsToRender.map(c => {
+    const isChild = c.depth > 0;
+    const depthIndentClass = isChild 
+      ? 'ml-3 sm:ml-5 pl-2 sm:pl-3 border-l-2 border-amber-400/60 dark:border-amber-500/50' 
+      : '';
+
+    return `
+      <div class="flex items-start justify-between gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-amber-400/50 transition-colors ${depthIndentClass}">
+        
+        <!-- Column 1: Author Badge (Top-Aligned) -->
+        <span class="w-20 sm:w-24 font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1 text-[11px] truncate flex-shrink-0 self-start pt-0.5">
+          ${isChild ? '<i class="fa-solid fa-reply rotate-180 text-[10px] text-amber-500 flex-shrink-0"></i>' : '<i class="fa-solid fa-paw text-[9px] flex-shrink-0"></i>'}
+          <span class="truncate">${escapeHtml(c.writer || '익명 강아지')}</span>
+        </span>
+
+        <!-- Column 2: Comment Content (Full Multi-line Wrapped Text) -->
+        <div class="flex-1 text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words px-1" title="${escapeHtml(c.comment)}">
+          ${escapeHtml(c.comment)}
+        </div>
+
+        <!-- Column 3: Actions & Timestamp (Top-Aligned) -->
+        <div class="flex items-center gap-1.5 flex-shrink-0 self-start pt-0.5">
+          <button onclick="setReplyTarget(${c.id}, '${escapeHtml(c.writer || '익명 강아지')}', event)" title="답글 달기" class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700/70 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-slate-500 hover:text-amber-600 dark:text-slate-300 text-[10px] font-semibold transition-all cursor-pointer whitespace-nowrap">
+            <i class="fa-regular fa-comment-dots text-[10px]"></i> 답글
+          </button>
+
+          <button id="btnCommentLike_${c.id}" onclick="toggleCommentLike(${c.id}, event)" title="댓글 좋아요" class="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-500 text-[10px] font-bold border border-rose-200 dark:border-rose-900/50 transition-all cursor-pointer active:scale-95 whitespace-nowrap">
+            <i class="fa-solid fa-heart text-[9px]"></i>
+            <span id="commentLikeCount_${c.id}">${c.like_count || 0}</span>
+          </button>
+
+          <span class="w-14 sm:w-20 text-[10px] text-slate-400 font-mono text-right hidden sm:inline whitespace-nowrap">
+            ${formatCommentDate(c.created_at)}
+          </span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 window.submitPhotoComment = async function(event) {
@@ -918,20 +1098,27 @@ window.submitPhotoComment = async function(event) {
 
   try {
     if (photo.id) {
+      const payload = {
+        action: 'add_comment',
+        photo_id: photo.id,
+        writer: writer || '익명 강아지',
+        comment: comment
+      };
+      if (activeReplyParentId) {
+        payload.parent_id = activeReplyParentId;
+      }
+
       const res = await fetch('/api/photos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'add_comment',
-          photo_id: photo.id,
-          writer: writer || '익명 강아지',
-          comment: comment
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data && data.success) {
         if (textInput) textInput.value = '';
+        cancelReplyTarget();
         fetchAndRenderPhotoComments(photo.id);
+        loadLiveComments();
       } else {
         alert(`🚨 댓글 등록 실패: ${data.message || '오류 발생'}`);
       }
@@ -946,16 +1133,108 @@ window.submitPhotoComment = async function(event) {
   }
 };
 
+// Live Comments Section Logic
+let allLiveComments = [];
+let liveCommentsVisibleLimit = 10;
+
+async function loadLiveComments() {
+  const container = document.getElementById('liveCommentsContainer');
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'recent_comments' })
+    });
+    const data = await res.json();
+    if (data && data.success && Array.isArray(data.comments)) {
+      allLiveComments = data.comments;
+    } else {
+      allLiveComments = [];
+    }
+  } catch (err) {
+    console.error('🚨 [실시간 댓글 로드 에러]:', err);
+    allLiveComments = [];
+  }
+  renderLiveCommentsList();
+}
+
+window.openPhotoPreviewByPhotoId = function(photoId) {
+  if (!photoId || !Array.isArray(carouselPhotos)) return;
+  const idx = carouselPhotos.findIndex(p => String(p.id) === String(photoId));
+  if (idx !== -1) {
+    openPhotoPreviewModal(idx);
+  } else {
+    openPhotoPreviewModal(0);
+  }
+};
+
+function renderLiveCommentsList() {
+  const container = document.getElementById('liveCommentsContainer');
+  const btnLoadMoreWrapper = document.getElementById('liveCommentsLoadMoreWrapper');
+  if (!container) return;
+
+  if (allLiveComments.length === 0) {
+    container.innerHTML = `
+      <div class="py-4 text-center text-slate-400 text-xs">
+        💬 등록된 댓글이 없습니다.
+      </div>
+    `;
+    if (btnLoadMoreWrapper) btnLoadMoreWrapper.classList.add('hidden');
+    return;
+  }
+
+  const visibleList = allLiveComments.slice(0, liveCommentsVisibleLimit);
+
+  container.innerHTML = visibleList.map(c => `
+    <div onclick="openPhotoPreviewByPhotoId(${c.photo_id})" class="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/60 shadow-2xs hover:border-amber-400/50 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 transition-all text-xs cursor-pointer group">
+      <span class="w-16 sm:w-20 font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1 text-[11px] truncate flex-shrink-0">
+        <i class="fa-solid fa-paw text-[9px]"></i>
+        <span class="truncate">${escapeHtml(c.writer || '익명 강아지')}</span>
+      </span>
+
+      <span class="flex-1 text-xs text-slate-800 dark:text-slate-200 font-medium truncate px-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors" title="${escapeHtml(c.comment)}">
+        ${escapeHtml(c.comment)}
+      </span>
+
+      <span class="w-16 sm:w-20 text-[10px] text-slate-400 font-mono text-right flex-shrink-0">
+        ${formatCommentDate(c.created_at)}
+      </span>
+    </div>
+  `).join('');
+
+  if (btnLoadMoreWrapper) {
+    if (liveCommentsVisibleLimit >= allLiveComments.length) {
+      btnLoadMoreWrapper.classList.add('hidden');
+    } else {
+      btnLoadMoreWrapper.classList.remove('hidden');
+    }
+  }
+}
+
+window.loadMoreLiveComments = function() {
+  liveCommentsVisibleLimit += 5;
+  renderLiveCommentsList();
+};
+
+window.refreshLiveComments = async function() {
+  const icon = document.getElementById('iconRefreshLiveComments');
+  if (icon) icon.classList.add('fa-spin');
+  liveCommentsVisibleLimit = 10;
+  await loadLiveComments();
+  setTimeout(() => {
+    if (icon) icon.classList.remove('fa-spin');
+  }, 400);
+};
+
 function formatCommentDate(isoStr) {
   if (!isoStr) return '';
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return String(isoStr);
-  const yy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   const hh = String(d.getHours()).padStart(2, '0');
   const min = String(d.getMinutes()).padStart(2, '0');
-  return `${yy}.${mm}.${dd} ${hh}:${min}`;
+  return `${mm}/${dd} ${hh}:${min}`;
 }
 
 function escapeHtml(str) {
@@ -1032,6 +1311,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   fetchAttendance(selectedDate);
   fetchMealMenu(selectedDate);
+  loadLiveComments();
   setupCarouselAutoPlayListeners();
   window.addEventListener('resize', renderCarousel);
 });
