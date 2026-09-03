@@ -2181,11 +2181,11 @@ function setupEventListeners() {
     }
   });
 
-  // Calendar Collapsible Toggle
+  // Calendar Collapsible Toggle (Default Collapsed)
   const calendarHeaderToggle = document.getElementById('calendarHeaderToggle');
   const calendarBody = document.getElementById('calendarBody');
   const calendarChevron = document.getElementById('calendarChevron');
-  let isCalendarCollapsed = false;
+  let isCalendarCollapsed = true;
 
   if (calendarHeaderToggle && calendarBody) {
     calendarHeaderToggle.addEventListener('click', () => {
@@ -2200,11 +2200,11 @@ function setupEventListeners() {
     });
   }
 
-  // Meal Card Collapsible Toggle
+  // Meal Card Collapsible Toggle (Default Collapsed)
   const mealHeaderToggle = document.getElementById('mealHeaderToggle');
   const mealBody = document.getElementById('mealBody');
   const mealChevron = document.getElementById('mealChevron');
-  let isMealCollapsed = false;
+  let isMealCollapsed = true;
 
   if (mealHeaderToggle && mealBody) {
     mealHeaderToggle.addEventListener('click', () => {
