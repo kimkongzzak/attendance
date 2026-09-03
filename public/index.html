@@ -575,7 +575,7 @@
 
   <!-- Photo Preview / Fullscreen Popup Modal -->
   <div id="photoPreviewModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 hidden transition-all duration-300">
-    <div class="relative max-w-md sm:max-w-lg w-full max-h-[92vh] flex flex-col rounded-3xl theme-card p-4 sm:p-5 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-y-auto no-scrollbar">
+    <div class="relative max-w-2xl sm:max-w-3xl w-full max-h-[92vh] flex flex-col rounded-3xl theme-card p-4 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-y-auto no-scrollbar">
       
       <!-- Top Bar: Image Name & Close Button -->
       <div class="w-full flex items-center justify-between pb-3 mb-3 border-b border-slate-200 dark:border-slate-700/60 text-slate-900 dark:text-white flex-shrink-0">
@@ -593,18 +593,22 @@
         </button>
       </div>
 
-      <!-- Main Image Container (Strict 4:3 Frame, No Pillarboxing) -->
-      <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-md group flex-shrink-0">
-        <img id="photoPreviewImg" src="" alt="크게 보기 이미지" class="w-full h-full object-cover transition-all duration-300">
+      <!-- Main Image Section with Prev/Next Navigation Arrows Placed Outside Image Container -->
+      <div class="relative w-full flex items-center justify-center px-10 sm:px-14 flex-shrink-0 my-1">
         
-        <!-- Prev Button -->
-        <button onclick="previewPrevPhoto()" title="이전 사진 (Left Arrow)" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-xl backdrop-blur-md cursor-pointer border border-white/10">
-          <i class="fa-solid fa-chevron-left text-xs"></i>
+        <!-- Prev Button (Outside Image Container) -->
+        <button onclick="previewPrevPhoto()" title="이전 사진" class="absolute left-0 sm:left-1 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 dark:hover:bg-amber-500 text-slate-600 dark:text-slate-200 hover:text-white dark:hover:text-white flex items-center justify-center transition-all shadow-md backdrop-blur-md cursor-pointer border border-slate-200 dark:border-slate-700 z-10 active:scale-95">
+          <i class="fa-solid fa-chevron-left text-sm"></i>
         </button>
 
-        <!-- Next Button -->
-        <button onclick="previewNextPhoto()" title="다음 사진 (Right Arrow)" class="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-xl backdrop-blur-md cursor-pointer border border-white/10">
-          <i class="fa-solid fa-chevron-right text-xs"></i>
+        <!-- Main Image Box (Strict Fixed Dimensions: max-w-md sm:max-w-lg aspect-[4/3] to preserve original photo size) -->
+        <div class="relative max-w-md sm:max-w-lg w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-md group flex-shrink-0">
+          <img id="photoPreviewImg" src="" alt="크게 보기 이미지" class="w-full h-full object-cover transition-all duration-300">
+        </div>
+
+        <!-- Next Button (Outside Image Container) -->
+        <button onclick="previewNextPhoto()" title="다음 사진" class="absolute right-0 sm:right-1 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 dark:hover:bg-amber-500 text-slate-600 dark:text-slate-200 hover:text-white dark:hover:text-white flex items-center justify-center transition-all shadow-md backdrop-blur-md cursor-pointer border border-slate-200 dark:border-slate-700 z-10 active:scale-95">
+          <i class="fa-solid fa-chevron-right text-sm"></i>
         </button>
       </div>
 
