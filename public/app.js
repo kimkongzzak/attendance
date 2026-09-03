@@ -202,7 +202,9 @@ function renderCarousel() {
     const photoObj = carouselPhotos[realIndex] || {};
     const photoId = photoObj.id;
     const likes = typeof photoObj.like_count === 'number' ? photoObj.like_count : 0;
-    const commentsCount = photoId ? allLiveComments.filter(c => String(c.photo_id) === String(photoId)).length : 0;
+    const commentsCount = photoId 
+      ? allLiveComments.filter(c => String(c.photo_id) === String(photoId) && !c.is_deleted && c.comment !== '삭제된 댓글입니다' && c.comment !== '삭제된 메시지입니다').length 
+      : 0;
 
     return `
       <div class="p-1" style="width: ${widthPercent}%;">
