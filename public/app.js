@@ -1008,6 +1008,14 @@ function renderPhotoCommentsList(comments) {
     return timeA - timeB;
   });
 
+  // Helper to check if a comment is marked deleted
+  const isCommentDeleted = (c) => Boolean(
+    c.is_deleted === true || 
+    c.is_deleted === 'true' || 
+    c.comment === '삭제된 댓글입니다' || 
+    c.comment === '삭제된 메시지입니다'
+  );
+
   // 2. Group into parent-child hierarchy
   const commentMap = {};
   const rootComments = [];
@@ -1026,18 +1034,29 @@ function renderPhotoCommentsList(comments) {
     }
   });
 
-  // Flatten tree into depth order with filtering for deleted messages
+  // Helper to check recursively if a node or any of its descendants has ACTIVE (non-deleted) content
+  function hasActiveDescendants(node) {
+    if (!Array.isArray(node.children) || node.children.length === 0) {
+      return false;
+    }
+    return node.children.some(child => {
+      const childActive = !isCommentDeleted(child);
+      return childActive || hasActiveDescendants(child);
+    });
+  }
+
+  // Flatten tree into depth order with smart recursive filtering for deleted messages
   function flattenNode(node, depth = 0) {
     node.depth = depth;
 
-    const isDeleted = Boolean(node.is_deleted || node.comment === '삭제된 메시지입니다');
-    const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+    const deleted = isCommentDeleted(node);
+    const activeDescendants = hasActiveDescendants(node);
 
     // RULE:
-    // If node is deleted AND has active children -> RENDER IT as "삭제된 메시지입니다" so child replies can hang under it!
-    // If node is deleted AND has NO children -> SKIP IT completely! (Do NOT render "삭제된 메시지입니다")
-    // If node is not deleted -> RENDER IT normally!
-    if (!isDeleted || hasChildren) {
+    // If node is NOT deleted -> RENDER IT normally!
+    // If node IS deleted AND has active descendants -> RENDER IT as "삭제된 댓글입니다" so active child replies can hang under it!
+    // If node IS deleted AND has NO active descendants (or all children are also deleted) -> SKIP IT completely!
+    if (!deleted || activeDescendants) {
       itemsToRender.push(node);
     }
 
@@ -1049,7 +1068,7 @@ function renderPhotoCommentsList(comments) {
   rootComments.forEach(r => flattenNode(r, 0));
 
   // Count active non-deleted comments for badge
-  const activeCommentsCount = currentPhotoComments.filter(c => !c.is_deleted && c.comment !== '삭제된 메시지입니다').length;
+  const activeCommentsCount = currentPhotoComments.filter(c => !isCommentDeleted(c)).length;
   if (badgeEl) badgeEl.textContent = activeCommentsCount;
 
   if (itemsToRender.length === 0) {
