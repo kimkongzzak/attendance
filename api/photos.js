@@ -315,12 +315,15 @@ module.exports = async (req, res) => {
       }
 
       try {
-        // Primary attempt: update both is_deleted = true and comment = '삭제된 댓글입니다'
-        try {
-          await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
+        console.log(`[Supabase Delete Comment] Updating is_deleted=true for comment ID: ${commentId}`);
+
+        const patchRes = await axios.patch(
+          `${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`,
+          {
             is_deleted: true,
             comment: '삭제된 댓글입니다'
-          }, {
+          },
+          {
             headers: {
               'apikey': config.key,
               'Authorization': `Bearer ${config.key}`,
@@ -328,29 +331,23 @@ module.exports = async (req, res) => {
               'Prefer': 'return=representation'
             },
             httpsAgent
-          });
-        } catch (patchErr) {
-          console.warn('📌 [is_deleted 컬럼 미존재 가능성]: comment 텍스트만 삭제된 댓글로 업데이트합니다.', patchErr.response ? patchErr.response.data : patchErr.message);
-          await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
-            comment: '삭제된 댓글입니다'
-          }, {
-            headers: {
-              'apikey': config.key,
-              'Authorization': `Bearer ${config.key}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=representation'
-            },
-            httpsAgent
-          });
-        }
+          }
+        );
+
+        console.log('[Supabase Delete Comment Result]:', patchRes.data);
 
         return res.status(200).json({
           success: true,
-          message: '댓글이 삭제 처리되었습니다.'
+          updated: patchRes.data,
+          message: '댓글이 성공적으로 삭제(is_deleted=true) 처리되었습니다.'
         });
       } catch (err) {
         console.error('[Supabase Delete Comment Error]', err.response ? err.response.data : err.message);
-        return res.status(500).json({ success: false, message: '댓글 삭제 실패', error: err.message });
+        return res.status(500).json({
+          success: false,
+          message: '댓글 삭제 실패',
+          error: err.response ? err.response.data : err.message
+        });
       }
     }
 
