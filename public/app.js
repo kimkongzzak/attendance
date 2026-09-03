@@ -1058,7 +1058,7 @@ function renderPhotoCommentsList(comments) {
         </div>
 
         <!-- Column 3: Actions & Timestamp (Top-Aligned) -->
-        <div class="flex items-center gap-1.5 flex-shrink-0 self-start pt-0.5">
+        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0 self-start pt-0.5">
           <button onclick="setReplyTarget(${c.id}, '${escapeHtml(c.writer || '익명 강아지')}', event)" title="답글 달기" class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700/70 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-slate-500 hover:text-amber-600 dark:text-slate-300 text-[10px] font-semibold transition-all cursor-pointer whitespace-nowrap">
             <i class="fa-regular fa-comment-dots text-[10px]"></i> 답글
           </button>
@@ -1066,6 +1066,10 @@ function renderPhotoCommentsList(comments) {
           <button id="btnCommentLike_${c.id}" onclick="toggleCommentLike(${c.id}, event)" title="댓글 좋아요" class="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-500 text-[10px] font-bold border border-rose-200 dark:border-rose-900/50 transition-all cursor-pointer active:scale-95 whitespace-nowrap">
             <i class="fa-solid fa-heart text-[9px]"></i>
             <span id="commentLikeCount_${c.id}">${c.like_count || 0}</span>
+          </button>
+
+          <button onclick="deletePhotoComment(${c.id}, ${c.photo_id}, event)" title="댓글 삭제" class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700/70 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-slate-400 hover:text-rose-600 text-[10px] font-semibold transition-all cursor-pointer whitespace-nowrap">
+            <i class="fa-solid fa-trash-can text-[10px]"></i>
           </button>
 
           <span class="w-14 sm:w-20 text-[10px] text-slate-400 font-mono text-right hidden sm:inline whitespace-nowrap">
@@ -1076,6 +1080,33 @@ function renderPhotoCommentsList(comments) {
     `;
   }).join('');
 }
+
+window.deletePhotoComment = async function(commentId, photoId, event) {
+  if (event) event.stopPropagation();
+  if (!commentId) return;
+
+  if (!confirm('정말로 이 댓글을 삭제하시겠습니까? 🗑️')) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_comment', comment_id: commentId })
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      if (photoId) fetchAndRenderPhotoComments(photoId);
+      loadLiveComments();
+    } else {
+      alert(`🚨 댓글 삭제 실패: ${data.message || '오류 발생'}`);
+    }
+  } catch (err) {
+    console.error('🚨 [댓글 삭제 예외]:', err);
+    alert('댓글 삭제 처리 중 오류가 발생했습니다.');
+  }
+};
 
 window.submitPhotoComment = async function(event) {
   event.preventDefault();
@@ -1195,6 +1226,10 @@ function renderLiveCommentsList() {
       <span class="flex-1 text-xs text-slate-800 dark:text-slate-200 font-medium truncate px-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors" title="${escapeHtml(c.comment)}">
         ${escapeHtml(c.comment)}
       </span>
+
+      <button onclick="deletePhotoComment(${c.id}, ${c.photo_id}, event)" title="댓글 삭제" class="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-900/50 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer flex-shrink-0">
+        <i class="fa-solid fa-trash-can text-[10px]"></i>
+      </button>
 
       <span class="w-16 sm:w-20 text-[10px] text-slate-400 font-mono text-right flex-shrink-0">
         ${formatCommentDate(c.created_at)}

@@ -303,6 +303,37 @@ module.exports = async (req, res) => {
       }
     }
 
+    // DELETE COMMENT Action
+    if (action === 'delete_comment') {
+      const commentId = req.body.comment_id || id;
+      if (!commentId) {
+        return res.status(400).json({ success: false, message: 'comment_id 가 필요합니다.' });
+      }
+
+      if (!config.isConfigured) {
+        return res.status(200).json({ success: false, isConfigured: false, message: 'Supabase 미설정' });
+      }
+
+      try {
+        await axios.delete(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Prefer': 'return=representation'
+          },
+          httpsAgent
+        });
+
+        return res.status(200).json({
+          success: true,
+          message: '댓글이 성공적으로 삭제되었습니다.'
+        });
+      } catch (err) {
+        console.error('[Supabase Delete Comment Error]', err.response ? err.response.data : err.message);
+        return res.status(500).json({ success: false, message: '댓글 삭제 실패', error: err.message });
+      }
+    }
+
     // REORDER Action
     if (action === 'reorder') {
       const photosList = req.body.photos;
