@@ -334,16 +334,54 @@ window.setCarouselIndexDirect = function(index) {
   renderCarousel();
 };
 
-window.refreshCarouselView = function() {
-  currentCarouselIndex = 0;
-  if (Array.isArray(carouselPhotos) && carouselPhotos.length > 0) {
-    carouselPhotos.sort((a, b) => {
-      const orderA = typeof a.display_order === 'number' ? a.display_order : 0;
-      const orderB = typeof b.display_order === 'number' ? b.display_order : 0;
-      return orderB - orderA;
-    });
+window.refreshCarouselView = async function() {
+  const iconEl = document.getElementById('iconRefreshCarousel');
+  if (iconEl) iconEl.classList.add('fa-spin');
+
+  try {
+    // 1. Re-fetch photos directly from Supabase DB via /api/photos
+    await loadCarouselPhotos();
+
+    // 2. Ensure photos are sorted with recent photos first (display_order desc, id desc)
+    if (Array.isArray(carouselPhotos) && carouselPhotos.length > 0) {
+      carouselPhotos.sort((a, b) => {
+        const orderA = typeof a.display_order === 'number' ? a.display_order : 0;
+        const orderB = typeof b.display_order === 'number' ? b.display_order : 0;
+        if (orderB !== orderA) return orderB - orderA;
+        return (b.id || 0) - (a.id || 0);
+      });
+    }
+
+    // 3. Reset carousel index to 0 and render
+    currentCarouselIndex = 0;
+    renderCarousel();
+  } catch (err) {
+    console.error('🚨 [포토 갤러리 Supabase DB 재조회 오류]:', err);
+  } finally {
+    if (iconEl) {
+      setTimeout(() => {
+        iconEl.classList.remove('fa-spin');
+      }, 500);
+    }
   }
-  renderCarousel();
+};
+
+window.refreshMealMenu = async function() {
+  const iconEl = document.getElementById('iconRefreshMealMenu');
+  if (iconEl) iconEl.classList.add('fa-spin');
+
+  try {
+    // Re-fetch meal menu for selected date
+    await fetchMealMenu(selectedDate);
+  } catch (err) {
+    console.error('🚨 [오늘의 식단 API 재조회 오류]:', err);
+  } finally {
+    if (iconEl) {
+      setTimeout(() => {
+        iconEl.classList.remove('fa-spin');
+      }, 500);
+    }
+  }
 };
 
 window.deleteCarouselPhoto = async function(index) {
