@@ -303,7 +303,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    // DELETE COMMENT Action (Always soft delete by updating is_deleted=true & comment='삭제된 댓글입니다')
+    // DELETE COMMENT Action (Updates is_deleted=true & comment='삭제된 댓글입니다')
     if (action === 'delete_comment') {
       const commentId = req.body.comment_id || id;
       if (!commentId) {
@@ -315,24 +315,30 @@ module.exports = async (req, res) => {
       }
 
       try {
-        const patchPayload = { comment: '삭제된 댓글입니다' };
+        // Primary attempt: update both is_deleted = true and comment = '삭제된 댓글입니다'
         try {
-          patchPayload.is_deleted = true;
-          await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, patchPayload, {
+          await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
+            is_deleted: true,
+            comment: '삭제된 댓글입니다'
+          }, {
             headers: {
               'apikey': config.key,
               'Authorization': `Bearer ${config.key}`,
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
             },
             httpsAgent
           });
         } catch (patchErr) {
-          delete patchPayload.is_deleted;
-          await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, patchPayload, {
+          console.warn('📌 [is_deleted 컬럼 미존재 가능성]: comment 텍스트만 삭제된 댓글로 업데이트합니다.', patchErr.response ? patchErr.response.data : patchErr.message);
+          await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
+            comment: '삭제된 댓글입니다'
+          }, {
             headers: {
               'apikey': config.key,
               'Authorization': `Bearer ${config.key}`,
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
             },
             httpsAgent
           });
