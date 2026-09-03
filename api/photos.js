@@ -303,7 +303,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    // DELETE COMMENT Action (Soft delete if has child replies, hard delete if no child replies)
+    // DELETE COMMENT Action (Bulletproof Soft & Hard Delete with Fallbacks)
     if (action === 'delete_comment') {
       const commentId = req.body.comment_id || id;
       if (!commentId) {
@@ -316,28 +316,44 @@ module.exports = async (req, res) => {
 
       try {
         // 1. Check if target comment has child replies
-        const childCheckRes = await axios.get(`${config.url}/rest/v1/gallery_comments?parent_id=eq.${commentId}&select=id`, {
-          headers: {
-            'apikey': config.key,
-            'Authorization': `Bearer ${config.key}`
-          },
-          httpsAgent
-        });
-
-        const hasChildren = Array.isArray(childCheckRes.data) && childCheckRes.data.length > 0;
-
-        if (hasChildren) {
-          // Soft delete: mark is_deleted = true
-          await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
-            is_deleted: true
-          }, {
+        let hasChildren = false;
+        try {
+          const childCheckRes = await axios.get(`${config.url}/rest/v1/gallery_comments?parent_id=eq.${commentId}&select=id`, {
             headers: {
               'apikey': config.key,
-              'Authorization': `Bearer ${config.key}`,
-              'Content-Type': 'application/json'
+              'Authorization': `Bearer ${config.key}`
             },
             httpsAgent
           });
+          hasChildren = Array.isArray(childCheckRes.data) && childCheckRes.data.length > 0;
+        } catch (e) {
+          console.warn('[Child Check Warning]', e.message);
+        }
+
+        if (hasChildren) {
+          // Soft Delete: update comment text to '삭제된 메시지입니다' and try setting is_deleted=true
+          const patchPayload = { comment: '삭제된 메시지입니다' };
+          try {
+            patchPayload.is_deleted = true;
+            await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, patchPayload, {
+              headers: {
+                'apikey': config.key,
+                'Authorization': `Bearer ${config.key}`,
+                'Content-Type': 'application/json'
+              },
+              httpsAgent
+            });
+          } catch (patchErr) {
+            delete patchPayload.is_deleted;
+            await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, patchPayload, {
+              headers: {
+                'apikey': config.key,
+                'Authorization': `Bearer ${config.key}`,
+                'Content-Type': 'application/json'
+              },
+              httpsAgent
+            });
+          }
 
           return res.status(200).json({
             success: true,
@@ -345,14 +361,29 @@ module.exports = async (req, res) => {
             message: '댓글이 삭제 처리되었습니다.'
           });
         } else {
-          // Hard delete target comment
-          await axios.delete(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
-            headers: {
-              'apikey': config.key,
-              'Authorization': `Bearer ${config.key}`
-            },
-            httpsAgent
-          });
+          // Hard Delete: try DELETE operation first
+          try {
+            await axios.delete(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
+              headers: {
+                'apikey': config.key,
+                'Authorization': `Bearer ${config.key}`
+              },
+              httpsAgent
+            });
+          } catch (delErr) {
+            console.warn('[Hard Delete Error, fallback to soft-hide]:', delErr.message);
+            // Fallback if RLS DELETE policy is missing: update comment text
+            await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
+              comment: '삭제된 메시지입니다'
+            }, {
+              headers: {
+                'apikey': config.key,
+                'Authorization': `Bearer ${config.key}`,
+                'Content-Type': 'application/json'
+              },
+              httpsAgent
+            });
+          }
 
           return res.status(200).json({
             success: true,
