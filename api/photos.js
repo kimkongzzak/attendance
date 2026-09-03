@@ -70,6 +70,127 @@ module.exports = async (req, res) => {
   if (req.method === 'POST') {
     const { action, id, photo_name, photo_data, display_order } = req.body || {};
 
+    // LIKE Action
+    if (action === 'like') {
+      const targetPhotoId = id || req.body.photo_id;
+      if (!targetPhotoId) {
+        return res.status(400).json({ success: false, message: 'photo_id 가 필요합니다.' });
+      }
+
+      if (!config.isConfigured) {
+        return res.status(200).json({ success: false, isConfigured: false, message: 'Supabase 미설정' });
+      }
+
+      try {
+        let currentLikes = 0;
+        try {
+          const fetchRes = await axios.get(`${config.url}/rest/v1/gallery_photos?id=eq.${targetPhotoId}&select=like_count`, {
+            headers: {
+              'apikey': config.key,
+              'Authorization': `Bearer ${config.key}`
+            },
+            httpsAgent
+          });
+          if (fetchRes.data && fetchRes.data.length > 0 && typeof fetchRes.data[0].like_count === 'number') {
+            currentLikes = fetchRes.data[0].like_count;
+          }
+        } catch (e) {}
+
+        const newLikes = currentLikes + 1;
+        await axios.patch(`${config.url}/rest/v1/gallery_photos?id=eq.${targetPhotoId}`, {
+          like_count: newLikes
+        }, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          httpsAgent
+        });
+
+        return res.status(200).json({
+          success: true,
+          photo_id: targetPhotoId,
+          like_count: newLikes,
+          message: '좋아요가 반영되었습니다.'
+        });
+      } catch (err) {
+        console.error('[Supabase Like Photo Error]', err.response ? err.response.data : err.message);
+        return res.status(500).json({ success: false, message: '좋아요 처리 실패', error: err.message });
+      }
+    }
+
+    // GET COMMENTS Action
+    if (action === 'get_comments') {
+      const targetPhotoId = id || req.body.photo_id;
+      if (!targetPhotoId) {
+        return res.status(400).json({ success: false, message: 'photo_id 가 필요합니다.' });
+      }
+
+      if (!config.isConfigured) {
+        return res.status(200).json({ success: false, isConfigured: false, comments: [] });
+      }
+
+      try {
+        const commentsRes = await axios.get(`${config.url}/rest/v1/gallery_comments?photo_id=eq.${targetPhotoId}&order=created_at.asc`, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`
+          },
+          httpsAgent
+        });
+
+        return res.status(200).json({
+          success: true,
+          comments: commentsRes.data || []
+        });
+      } catch (err) {
+        console.error('[Supabase Get Comments Error]', err.response ? err.response.data : err.message);
+        return res.status(200).json({ success: false, comments: [], error: err.message });
+      }
+    }
+
+    // ADD COMMENT Action
+    if (action === 'add_comment') {
+      const targetPhotoId = id || req.body.photo_id;
+      const { writer, comment } = req.body || {};
+
+      if (!targetPhotoId || !comment) {
+        return res.status(400).json({ success: false, message: 'photo_id 및 comment 내용이 필요합니다.' });
+      }
+
+      if (!config.isConfigured) {
+        return res.status(200).json({ success: false, isConfigured: false, message: 'Supabase 미설정' });
+      }
+
+      try {
+        const insertRes = await axios.post(`${config.url}/rest/v1/gallery_comments`, {
+          photo_id: targetPhotoId,
+          writer: writer || '익명 강아지',
+          comment: comment
+        }, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          httpsAgent
+        });
+
+        const newCommentObj = insertRes.data && insertRes.data[0] ? insertRes.data[0] : insertRes.data;
+        return res.status(200).json({
+          success: true,
+          comment: newCommentObj,
+          message: '댓글이 성공적으로 등록되었습니다.'
+        });
+      } catch (err) {
+        console.error('[Supabase Add Comment Error]', err.response ? err.response.data : err.message);
+        return res.status(500).json({ success: false, message: '댓글 등록 실패', error: err.message });
+      }
+    }
+
     // REORDER Action
     if (action === 'reorder') {
       const photosList = req.body.photos;

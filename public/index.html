@@ -543,38 +543,78 @@
   </div>
 
   <!-- Photo Preview / Fullscreen Popup Modal -->
-  <div id="photoPreviewModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 hidden transition-all duration-300">
-    <div class="relative max-w-5xl w-full max-h-[92vh] flex flex-col items-center justify-center select-none">
+  <div id="photoPreviewModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 hidden transition-all duration-300">
+    <div class="relative max-w-md sm:max-w-lg w-full max-h-[92vh] flex flex-col rounded-3xl theme-card p-4 sm:p-5 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-y-auto no-scrollbar">
       
       <!-- Top Bar: Image Name & Close Button -->
-      <div class="w-full flex items-center justify-between px-2 mb-3 text-white">
-        <div class="flex items-center gap-2">
-          <span class="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-extrabold" id="photoPreviewCounter">
+      <div class="w-full flex items-center justify-between pb-3 mb-3 border-b border-slate-200 dark:border-slate-700/60 text-slate-900 dark:text-white flex-shrink-0">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-extrabold flex-shrink-0" id="photoPreviewCounter">
             #1 / 1
           </span>
-          <span class="text-sm sm:text-base font-bold truncate max-w-[200px] sm:max-w-md" id="photoPreviewTitle">
+          <span class="text-sm font-extrabold truncate text-slate-900 dark:text-white" id="photoPreviewTitle">
             강아지 사진
           </span>
         </div>
 
-        <button onclick="closePhotoPreviewModal()" title="닫기 (Esc)" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-sm">
-          <i class="fa-solid fa-xmark text-lg"></i>
+        <button onclick="closePhotoPreviewModal()" title="닫기 (Esc)" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center transition-all cursor-pointer flex-shrink-0 ml-2">
+          <i class="fa-solid fa-xmark text-base"></i>
         </button>
       </div>
 
-      <!-- Main Image Container -->
-      <div class="relative w-full flex items-center justify-center overflow-hidden rounded-2xl bg-black/40 border border-white/10 shadow-2xl p-1 group">
-        <img id="photoPreviewImg" src="" alt="크게 보기 이미지" class="max-h-[78vh] max-w-full object-contain rounded-xl transition-all duration-300">
+      <!-- Main Image Container (Strict 4:3 Frame, No Pillarboxing) -->
+      <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-md group flex-shrink-0">
+        <img id="photoPreviewImg" src="" alt="크게 보기 이미지" class="w-full h-full object-cover transition-all duration-300">
         
         <!-- Prev Button -->
-        <button onclick="previewPrevPhoto()" title="이전 사진 (Left Arrow)" class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-xl backdrop-blur-md cursor-pointer border border-white/10">
-          <i class="fa-solid fa-chevron-left text-base"></i>
+        <button onclick="previewPrevPhoto()" title="이전 사진 (Left Arrow)" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-xl backdrop-blur-md cursor-pointer border border-white/10">
+          <i class="fa-solid fa-chevron-left text-xs"></i>
         </button>
 
         <!-- Next Button -->
-        <button onclick="previewNextPhoto()" title="다음 사진 (Right Arrow)" class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-xl backdrop-blur-md cursor-pointer border border-white/10">
-          <i class="fa-solid fa-chevron-right text-base"></i>
+        <button onclick="previewNextPhoto()" title="다음 사진 (Right Arrow)" class="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-xl backdrop-blur-md cursor-pointer border border-white/10">
+          <i class="fa-solid fa-chevron-right text-xs"></i>
         </button>
+      </div>
+
+      <!-- Interactive Section: Likes & Comments (Natural Vertical Expansion) -->
+      <div class="w-full mt-3.5 pt-3 border-t border-slate-200 dark:border-slate-700/60 flex flex-col gap-2.5 text-xs flex-shrink-0">
+        
+        <!-- Likes & Stats Bar -->
+        <div class="flex items-center justify-between flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <button id="btnPreviewLike" onclick="togglePhotoLike()" class="px-3 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 transition-all font-bold flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 text-xs">
+              <i class="fa-solid fa-heart text-xs text-rose-500"></i>
+              <span>좋아요</span>
+              <span id="previewLikeCount" class="ml-0.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold">0</span>
+            </button>
+            
+            <span class="text-slate-500 dark:text-slate-400 text-xs font-semibold flex items-center gap-1">
+              <i class="fa-regular fa-comment text-amber-500"></i>
+              <span>댓글</span>
+              <span id="previewCommentCountBadge" class="font-extrabold text-amber-600 dark:text-amber-400">0</span>개
+            </span>
+          </div>
+        </div>
+
+        <!-- Comments List Area (Natural Height, Single-Line Table Row Layout) -->
+        <div class="w-full rounded-2xl bg-slate-50 dark:bg-slate-900/80 p-2 border border-slate-200 dark:border-slate-800 flex flex-col gap-1.5" id="previewCommentsList">
+          <!-- Comments rendered via JS -->
+          <div class="py-4 text-center text-slate-400 text-xs">
+            💬 첫 번째 댓글을 남겨보세요!
+          </div>
+        </div>
+
+        <!-- Add Comment Input Form (Increased Height h-10) -->
+        <form id="previewCommentForm" onsubmit="submitPhotoComment(event)" class="flex items-center gap-2 flex-shrink-0 mt-1">
+          <input type="text" id="commentWriterInput" placeholder="작성자" maxlength="20" class="h-10 w-24 sm:w-28 px-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50 font-medium">
+          <input type="text" id="commentTextInput" placeholder="댓글을 입력하세요... 🐶" required maxlength="200" class="h-10 flex-1 px-3.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50 font-medium">
+          <button type="submit" id="btnSubmitComment" class="h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+            <i class="fa-solid fa-paper-plane text-xs"></i>
+            <span>등록</span>
+          </button>
+        </form>
+
       </div>
 
     </div>

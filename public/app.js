@@ -106,7 +106,8 @@ async function loadCarouselPhotos() {
         id: p.id,
         url: p.photo_data,
         name: p.photo_name || '포토 갤러리 이미지',
-        display_order: p.display_order || 0
+        display_order: p.display_order || 0,
+        like_count: p.like_count || 0
       }));
 
       if (dbStatusEl) {
@@ -786,10 +787,185 @@ function updatePhotoPreviewContent() {
   const imgEl = document.getElementById('photoPreviewImg');
   const titleEl = document.getElementById('photoPreviewTitle');
   const counterEl = document.getElementById('photoPreviewCounter');
+  const likeCountEl = document.getElementById('previewLikeCount');
 
   if (imgEl) imgEl.src = src;
   if (titleEl) titleEl.textContent = name;
   if (counterEl) counterEl.textContent = `#${currentPreviewIndex + 1} / ${carouselPhotos.length}`;
+  if (likeCountEl) likeCountEl.textContent = typeof photo.like_count === 'number' ? photo.like_count : 0;
+
+  // Load comments for current photo
+  if (photo && photo.id) {
+    fetchAndRenderPhotoComments(photo.id);
+  } else {
+    renderPhotoCommentsList([]);
+  }
+}
+
+window.togglePhotoLike = async function() {
+  const photo = carouselPhotos[currentPreviewIndex];
+  if (!photo) return;
+
+  // Optimistic UI update
+  photo.like_count = (photo.like_count || 0) + 1;
+  const likeCountEl = document.getElementById('previewLikeCount');
+  if (likeCountEl) likeCountEl.textContent = photo.like_count;
+
+  if (photo.id) {
+    try {
+      const res = await fetch('/api/photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'like', photo_id: photo.id })
+      });
+      const data = await res.json();
+      if (data && data.success && typeof data.like_count === 'number') {
+        photo.like_count = data.like_count;
+        if (likeCountEl) likeCountEl.textContent = photo.like_count;
+      }
+    } catch (err) {
+      console.warn('🚨 [좋아요 API 호출 에러]:', err);
+    }
+  }
+};
+
+async function fetchAndRenderPhotoComments(photoId) {
+  const listEl = document.getElementById('previewCommentsList');
+  const badgeEl = document.getElementById('previewCommentCountBadge');
+
+  if (listEl) {
+    listEl.innerHTML = `
+      <div class="py-4 text-center text-slate-400 text-xs flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-spinner fa-spin"></i> 댓글을 불러오는 중입니다...
+      </div>
+    `;
+  }
+
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_comments', photo_id: photoId })
+    });
+    const data = await res.json();
+    const comments = (data && data.success && Array.isArray(data.comments)) ? data.comments : [];
+    renderPhotoCommentsList(comments);
+  } catch (err) {
+    console.error('🚨 [댓글 목록 조회 에러]:', err);
+    renderPhotoCommentsList([]);
+  }
+}
+
+function renderPhotoCommentsList(comments) {
+  const listEl = document.getElementById('previewCommentsList');
+  const badgeEl = document.getElementById('previewCommentCountBadge');
+
+  if (badgeEl) badgeEl.textContent = comments.length;
+  if (!listEl) return;
+
+  if (comments.length === 0) {
+    listEl.innerHTML = `
+      <div class="py-4 text-center text-slate-400 text-xs">
+        💬 등록된 댓글이 없습니다. 첫 번째 댓글을 남겨보세요! 🐶
+      </div>
+    `;
+    return;
+  }
+
+  // Sort ascending by created_at (oldest at top, newest at bottom)
+  const sortedComments = [...comments].sort((a, b) => {
+    const timeA = new Date(a.created_at || 0).getTime();
+    const timeB = new Date(b.created_at || 0).getTime();
+    return timeA - timeB;
+  });
+
+  listEl.innerHTML = sortedComments.map(c => `
+    <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-amber-400/50 transition-colors">
+      <span class="w-20 sm:w-24 font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1 text-[11px] truncate flex-shrink-0">
+        <i class="fa-solid fa-paw text-[9px]"></i>
+        <span class="truncate">${escapeHtml(c.writer || '익명 강아지')}</span>
+      </span>
+
+      <span class="flex-1 text-xs text-slate-800 dark:text-slate-200 font-medium truncate px-1" title="${escapeHtml(c.comment)}">
+        ${escapeHtml(c.comment)}
+      </span>
+
+      <span class="w-24 sm:w-28 text-[10px] text-slate-400 font-mono text-right flex-shrink-0">
+        ${formatCommentDate(c.created_at)}
+      </span>
+    </div>
+  `).join('');
+}
+
+window.submitPhotoComment = async function(event) {
+  event.preventDefault();
+  const photo = carouselPhotos[currentPreviewIndex];
+  if (!photo) return;
+
+  const writerInput = document.getElementById('commentWriterInput');
+  const textInput = document.getElementById('commentTextInput');
+  const btnSubmit = document.getElementById('btnSubmitComment');
+
+  const writer = writerInput ? writerInput.value.trim() : '';
+  const comment = textInput ? textInput.value.trim() : '';
+
+  if (!comment) {
+    alert('댓글 내용을 입력해주세요.');
+    return;
+  }
+
+  if (btnSubmit) btnSubmit.disabled = true;
+
+  try {
+    if (photo.id) {
+      const res = await fetch('/api/photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_comment',
+          photo_id: photo.id,
+          writer: writer || '익명 강아지',
+          comment: comment
+        })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        if (textInput) textInput.value = '';
+        fetchAndRenderPhotoComments(photo.id);
+      } else {
+        alert(`🚨 댓글 등록 실패: ${data.message || '오류 발생'}`);
+      }
+    } else {
+      alert('Supabase DB에 등록된 사진에만 댓글을 저장할 수 있습니다.');
+    }
+  } catch (err) {
+    console.error('🚨 [댓글 등록 예외]:', err);
+    alert('댓글 등록 중 오류가 발생했습니다.');
+  } finally {
+    if (btnSubmit) btnSubmit.disabled = false;
+  }
+};
+
+function formatCommentDate(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return String(isoStr);
+  const yy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yy}.${mm}.${dd} ${hh}:${min}`;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 // Global Keyboard Navigation for Photo Preview
@@ -1188,7 +1364,7 @@ window.deleteEmployee = function(cardId) {
   }
 };
 
-// Date State Initialization
+// Date State Initialization (Defaults to Today in UI & Logic)
 function initDateState() {
   const now = new Date();
   const yyyy = now.getFullYear();
@@ -1198,6 +1374,12 @@ function initDateState() {
   
   selectedDate = todayDateStr;
   calendarViewDate = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Set initial text elements to today's date dynamically
+  const selectedDateText = document.getElementById('selectedDateText');
+  const mealDateText = document.getElementById('mealDateText');
+  if (selectedDateText) selectedDateText.textContent = selectedDate;
+  if (mealDateText) mealDateText.textContent = selectedDate;
 }
 
 // Calendar Component Logic (ALWAYS UNBLURRED & VISIBLE)
