@@ -1247,23 +1247,13 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-// Global Keyboard Navigation for Photo Preview (Ignored when typing in inputs/textareas)
+// Global Keyboard Handler for Photo Preview (Only Escape key closes modal; Arrow keys photo navigation disabled)
 document.addEventListener('keydown', (e) => {
   const modal = document.getElementById('photoPreviewModal');
   if (!modal || modal.classList.contains('hidden')) return;
 
-  const isInputTarget = e.target && (
-    e.target.tagName === 'INPUT' || 
-    e.target.tagName === 'TEXTAREA' || 
-    e.target.isContentEditable
-  );
-
   if (e.key === 'Escape') {
     closePhotoPreviewModal();
-  } else if (e.key === 'ArrowLeft' && !isInputTarget) {
-    previewPrevPhoto();
-  } else if (e.key === 'ArrowRight' && !isInputTarget) {
-    previewNextPhoto();
   }
 });
 
