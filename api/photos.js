@@ -303,7 +303,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    // DELETE COMMENT Action
+    // DELETE COMMENT Action (Soft delete if has child replies, hard delete if no child replies)
     if (action === 'delete_comment') {
       const commentId = req.body.comment_id || id;
       if (!commentId) {
@@ -315,19 +315,51 @@ module.exports = async (req, res) => {
       }
 
       try {
-        await axios.delete(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
+        // 1. Check if target comment has child replies
+        const childCheckRes = await axios.get(`${config.url}/rest/v1/gallery_comments?parent_id=eq.${commentId}&select=id`, {
           headers: {
             'apikey': config.key,
-            'Authorization': `Bearer ${config.key}`,
-            'Prefer': 'return=representation'
+            'Authorization': `Bearer ${config.key}`
           },
           httpsAgent
         });
 
-        return res.status(200).json({
-          success: true,
-          message: '댓글이 성공적으로 삭제되었습니다.'
-        });
+        const hasChildren = Array.isArray(childCheckRes.data) && childCheckRes.data.length > 0;
+
+        if (hasChildren) {
+          // Soft delete: mark is_deleted = true
+          await axios.patch(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
+            is_deleted: true
+          }, {
+            headers: {
+              'apikey': config.key,
+              'Authorization': `Bearer ${config.key}`,
+              'Content-Type': 'application/json'
+            },
+            httpsAgent
+          });
+
+          return res.status(200).json({
+            success: true,
+            isSoftDeleted: true,
+            message: '댓글이 삭제 처리되었습니다.'
+          });
+        } else {
+          // Hard delete target comment
+          await axios.delete(`${config.url}/rest/v1/gallery_comments?id=eq.${commentId}`, {
+            headers: {
+              'apikey': config.key,
+              'Authorization': `Bearer ${config.key}`
+            },
+            httpsAgent
+          });
+
+          return res.status(200).json({
+            success: true,
+            isSoftDeleted: false,
+            message: '댓글이 성공적으로 삭제되었습니다.'
+          });
+        }
       } catch (err) {
         console.error('[Supabase Delete Comment Error]', err.response ? err.response.data : err.message);
         return res.status(500).json({ success: false, message: '댓글 삭제 실패', error: err.message });

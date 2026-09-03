@@ -1026,10 +1026,21 @@ function renderPhotoCommentsList(comments) {
     }
   });
 
-  // Flatten tree into depth order
+  // Flatten tree into depth order with filtering for deleted messages
   function flattenNode(node, depth = 0) {
     node.depth = depth;
-    itemsToRender.push(node);
+
+    const isDeleted = Boolean(node.is_deleted || node.comment === '삭제된 메시지입니다');
+    const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+
+    // RULE:
+    // If node is deleted AND has active children -> RENDER IT as "삭제된 메시지입니다" so child replies can hang under it!
+    // If node is deleted AND has NO children -> SKIP IT completely! (Do NOT render "삭제된 메시지입니다")
+    // If node is not deleted -> RENDER IT normally!
+    if (!isDeleted || hasChildren) {
+      itemsToRender.push(node);
+    }
+
     if (Array.isArray(node.children)) {
       node.children.forEach(child => flattenNode(child, depth + 1));
     }
@@ -1037,11 +1048,41 @@ function renderPhotoCommentsList(comments) {
 
   rootComments.forEach(r => flattenNode(r, 0));
 
+  // Count active non-deleted comments for badge
+  const activeCommentsCount = currentPhotoComments.filter(c => !c.is_deleted && c.comment !== '삭제된 메시지입니다').length;
+  if (badgeEl) badgeEl.textContent = activeCommentsCount;
+
+  if (itemsToRender.length === 0) {
+    listEl.innerHTML = `
+      <div class="py-4 text-center text-slate-400 text-xs">
+        💬 등록된 댓글이 없습니다. 첫 번째 댓글을 남겨보세요! 🐶
+      </div>
+    `;
+    return;
+  }
+
   listEl.innerHTML = itemsToRender.map(c => {
     const isChild = c.depth > 0;
+    const isDeleted = Boolean(c.is_deleted || c.comment === '삭제된 메시지입니다');
+
     const depthIndentClass = isChild 
       ? 'ml-3 sm:ml-5 pl-2 sm:pl-3 border-l-2 border-amber-400/60 dark:border-amber-500/50' 
       : '';
+
+    if (isDeleted) {
+      // Soft-deleted comment placeholder (only shown if it has active child replies)
+      return `
+        <div class="flex items-center justify-between gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/40 ${depthIndentClass}">
+          <span class="text-xs text-slate-400 dark:text-slate-500 italic flex items-center gap-1.5 py-0.5">
+            <i class="fa-solid fa-ban text-[10px]"></i>
+            <span>삭제된 메시지입니다</span>
+          </span>
+          <span class="text-[10px] text-slate-400 font-mono text-right flex-shrink-0">
+            ${formatCommentDate(c.created_at)}
+          </span>
+        </div>
+      `;
+    }
 
     return `
       <div class="flex items-start justify-between gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-amber-400/50 transition-colors ${depthIndentClass}">
@@ -1204,7 +1245,10 @@ function renderLiveCommentsList() {
   const btnLoadMoreWrapper = document.getElementById('liveCommentsLoadMoreWrapper');
   if (!container) return;
 
-  if (allLiveComments.length === 0) {
+  // Filter active non-deleted comments for Live Comments card
+  const activeComments = allLiveComments.filter(c => !c.is_deleted && c.comment !== '삭제된 메시지입니다');
+
+  if (activeComments.length === 0) {
     container.innerHTML = `
       <div class="py-4 text-center text-slate-400 text-xs">
         💬 등록된 댓글이 없습니다.
@@ -1214,7 +1258,7 @@ function renderLiveCommentsList() {
     return;
   }
 
-  const visibleList = allLiveComments.slice(0, liveCommentsVisibleLimit);
+  const visibleList = activeComments.slice(0, liveCommentsVisibleLimit);
 
   container.innerHTML = visibleList.map(c => `
     <div onclick="openPhotoPreviewByPhotoId(${c.photo_id})" class="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/60 shadow-2xs hover:border-amber-400/50 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 transition-all text-xs cursor-pointer group">
@@ -1238,12 +1282,15 @@ function renderLiveCommentsList() {
   `).join('');
 
   if (btnLoadMoreWrapper) {
-    if (liveCommentsVisibleLimit >= allLiveComments.length) {
+    if (liveCommentsVisibleLimit >= activeComments.length) {
       btnLoadMoreWrapper.classList.add('hidden');
     } else {
       btnLoadMoreWrapper.classList.remove('hidden');
     }
   }
+
+  // Update carousel badges
+  renderCarousel();
 }
 
 window.loadMoreLiveComments = function() {
