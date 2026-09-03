@@ -1247,16 +1247,22 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-// Global Keyboard Navigation for Photo Preview
+// Global Keyboard Navigation for Photo Preview (Ignored when typing in inputs/textareas)
 document.addEventListener('keydown', (e) => {
   const modal = document.getElementById('photoPreviewModal');
   if (!modal || modal.classList.contains('hidden')) return;
 
+  const isInputTarget = e.target && (
+    e.target.tagName === 'INPUT' || 
+    e.target.tagName === 'TEXTAREA' || 
+    e.target.isContentEditable
+  );
+
   if (e.key === 'Escape') {
     closePhotoPreviewModal();
-  } else if (e.key === 'ArrowLeft') {
+  } else if (e.key === 'ArrowLeft' && !isInputTarget) {
     previewPrevPhoto();
-  } else if (e.key === 'ArrowRight') {
+  } else if (e.key === 'ArrowRight' && !isInputTarget) {
     previewNextPhoto();
   }
 });
