@@ -1,5 +1,7 @@
 const axios = require('axios');
+const https = require('https');
 
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 const holidayCache = {};
 
 module.exports = async (req, res) => {
@@ -20,7 +22,7 @@ module.exports = async (req, res) => {
     }
 
     const targetUrl = `https://date.nager.at/api/v3/PublicHolidays/${year}/KR`;
-    const response = await axios.get(targetUrl, { timeout: 5000 });
+    const response = await axios.get(targetUrl, { timeout: 5000, httpsAgent });
     const holidays = Array.isArray(response.data) ? response.data : [];
 
     holidayCache[year] = holidays;

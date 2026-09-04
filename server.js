@@ -948,7 +948,7 @@ app.get('/api/holidays', async (req, res) => {
     }
 
     const targetUrl = `https://date.nager.at/api/v3/PublicHolidays/${year}/KR`;
-    const response = await axios.get(targetUrl, { timeout: 5000 });
+    const response = await axios.get(targetUrl, { timeout: 5000, httpsAgent });
     const holidays = Array.isArray(response.data) ? response.data : [];
 
     holidayCache[year] = holidays;
@@ -965,7 +965,7 @@ app.get('/api/meal', async (req, res) => {
     const searchDate = req.query.searchDate || new Date().toISOString().split('T')[0];
     const targetUrl = `https://t.bodyfriend.co.kr/restaurant/api/CarteListByDate.json?startDate=${searchDate}&endDate=${searchDate}`;
 
-    const response = await axios.get(targetUrl, { timeout: 5000 });
+    const response = await axios.get(targetUrl, { timeout: 5000, httpsAgent });
     res.json({
       success: true,
       searchDate,

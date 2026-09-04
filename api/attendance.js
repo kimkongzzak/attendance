@@ -1,4 +1,7 @@
 const axios = require('axios');
+const https = require('https');
+
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const DEFAULT_TARGET_EMPLOYEES = [
   { empNo: 'BF202306014', empName: '서보연', cardId: '1814' },
@@ -38,7 +41,8 @@ module.exports = async (req, res) => {
         'code': apiCode,
         'key': apiKey
       },
-      timeout: 10000
+      timeout: 10000,
+      httpsAgent
     });
 
     const apiResult = response.data;

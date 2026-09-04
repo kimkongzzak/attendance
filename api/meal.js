@@ -1,4 +1,7 @@
 const axios = require('axios');
+const https = require('https');
+
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -14,7 +17,7 @@ module.exports = async (req, res) => {
   const targetUrl = `https://t.bodyfriend.co.kr/restaurant/api/CarteListByDate.json?startDate=${searchDate}&endDate=${searchDate}`;
 
   try {
-    const response = await axios.get(targetUrl, { timeout: 5000 });
+    const response = await axios.get(targetUrl, { timeout: 5000, httpsAgent });
     res.status(200).json({
       success: true,
       searchDate,

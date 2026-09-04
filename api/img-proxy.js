@@ -1,5 +1,7 @@
 const axios = require('axios');
+const https = require('https');
 
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 const imgCache = {};
 
 module.exports = async (req, res) => {
@@ -26,7 +28,8 @@ module.exports = async (req, res) => {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
       },
-      timeout: 8000
+      timeout: 8000,
+      httpsAgent
     });
 
     const contentType = response.headers['content-type'] || 'image/jpeg';
