@@ -1404,6 +1404,7 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuthState();
   loadCarouselPhotos();
   loadTrackedEmployees();
+  loadAllEmployeeMessages();
   initDateState();
   fetchYearHolidays(calendarViewDate.getFullYear());
   renderCalendar();
@@ -1657,23 +1658,243 @@ function setTheme(theme) {
   }
 }
 
-// Tracked Employees Management (localStorage)
-function loadTrackedEmployees() {
-  const saved = localStorage.getItem('tracked_employees');
-  if (saved) {
-    try {
-      trackedEmployees = JSON.parse(saved);
-    } catch (e) {
-      trackedEmployees = [...DEFAULT_EMPLOYEES];
+// Tracked Employees Management (Supabase DB)
+async function loadTrackedEmployees() {
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_tracked_employees' })
+    });
+    const data = await res.json();
+    if (data && data.success && Array.isArray(data.employees)) {
+      trackedEmployees = data.employees.map(e => ({
+        empNo: e.emp_no || e.empNo,
+        empName: e.name || e.empName,
+        cardId: e.card_no || e.cardNo || e.cardId || ''
+      }));
     }
-  } else {
-    trackedEmployees = [...DEFAULT_EMPLOYEES];
+  } catch (err) {
+    console.error('🚨 [우리편 DB 로드 에러]:', err);
   }
   renderTrackedEmployeesList();
 }
 
+async function loadAllEmployeeMessages() {
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_employee_messages' })
+    });
+    const data = await res.json();
+    if (data && data.success && Array.isArray(data.messages)) {
+      allEmpMessagesMap = {};
+      data.messages.forEach(m => {
+        if (!allEmpMessagesMap[m.emp_no]) {
+          allEmpMessagesMap[m.emp_no] = [];
+        }
+        allEmpMessagesMap[m.emp_no].push(m);
+      });
+    }
+  } catch (err) {
+    console.error('🚨 [모든 한줄메시지 로드 에러]:', err);
+  }
+}
+
+// Single-Line Employee Message Modal Management
+let currentMsgModalEmpNo = '';
+let currentMsgModalEmpName = '';
+
+window.openEmpMessageModal = async function(empNo, empName) {
+  currentMsgModalEmpNo = empNo;
+  currentMsgModalEmpName = empName;
+
+  const modal = document.getElementById('empMessageModal');
+  const titleEl = document.getElementById('empMessageModalTitle');
+  const textInput = document.getElementById('empMessageInput');
+
+  if (titleEl) titleEl.textContent = `${empName} 님의 한줄메시지`;
+  if (textInput) textInput.value = '';
+
+  if (modal) modal.classList.remove('hidden');
+
+  await fetchEmpMessageHistory(empNo);
+};
+
+window.closeEmpMessageModal = function() {
+  const modal = document.getElementById('empMessageModal');
+  if (modal) modal.classList.add('hidden');
+  currentMsgModalEmpNo = '';
+  currentMsgModalEmpName = '';
+};
+
+async function fetchEmpMessageHistory(empNo) {
+  const listEl = document.getElementById('empMessageHistoryList');
+  if (!listEl) return;
+
+  listEl.innerHTML = `
+    <div class="py-6 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+      <i class="fa-solid fa-circle-notch fa-spin text-amber-500"></i> 메시지 불러오는 중...
+    </div>
+  `;
+
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_employee_messages', emp_no: empNo })
+    });
+    const data = await res.json();
+    const messages = (data && data.success && Array.isArray(data.messages)) ? data.messages : [];
+
+    allEmpMessagesMap[empNo] = messages;
+    renderEmpSummaryDBTable();
+
+    if (messages.length === 0) {
+      listEl.innerHTML = `
+        <div class="py-6 text-center text-slate-400 text-xs">
+          💬 첫 메시지를 추가해 보세요! 🐶
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = messages.map(msg => `
+      <div class="flex items-start justify-between gap-2 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="font-extrabold text-amber-600 dark:text-amber-400 text-[11px] flex items-center gap-1">
+              <i class="fa-solid fa-paw text-[9px]"></i>
+              <span>${escapeHtml(msg.writer || '익명 강아지')}</span>
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono">
+              ${formatCommentDate(msg.created_at)}
+            </span>
+          </div>
+          <p class="text-xs text-slate-800 dark:text-slate-200 font-medium break-words leading-relaxed">
+            ${escapeHtml(msg.message)}
+          </p>
+        </div>
+
+        <div class="flex items-center gap-1 flex-shrink-0 self-start pt-0.5">
+          <button onclick="updateEmpMessagePrompt(${msg.id}, '${escapeHtml(msg.message)}')" title="수정" class="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-900/50 text-slate-400 hover:text-amber-600 text-xs transition-colors cursor-pointer">
+            <i class="fa-solid fa-pen text-[11px]"></i>
+          </button>
+          <button onclick="deleteEmpMessage(${msg.id})" title="삭제" class="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-900/50 text-slate-400 hover:text-rose-600 text-xs transition-colors cursor-pointer">
+            <i class="fa-solid fa-trash-can text-[11px]"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.error('🚨 [한줄메시지 조회 실패]:', err);
+    listEl.innerHTML = `
+      <div class="py-4 text-center text-rose-500 text-xs">
+        메시지 불러오기에 실패했습니다.
+      </div>
+    `;
+  }
+}
+
+window.submitEmpMessage = async function(event) {
+  event.preventDefault();
+  if (!currentMsgModalEmpNo) return;
+
+  const textInput = document.getElementById('empMessageInput');
+  const btnSubmit = document.getElementById('btnSubmitEmpMessage');
+
+  const message = textInput ? textInput.value.trim() : '';
+
+  if (!message) {
+    alert('한줄메시지 내용을 입력하세요.');
+    return;
+  }
+
+  if (btnSubmit) btnSubmit.disabled = true;
+
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'add_employee_message',
+        emp_no: currentMsgModalEmpNo,
+        writer: currentMsgModalEmpName || '익명 강아지',
+        message: message
+      })
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      if (textInput) textInput.value = '';
+      await fetchEmpMessageHistory(currentMsgModalEmpNo);
+    } else {
+      alert(`🚨 메시지 등록 실패: ${data.message || '오류'}`);
+    }
+  } catch (err) {
+    console.error('🚨 [메시지 등록 예외]:', err);
+    alert('메시지 등록 중 오류가 발생했습니다.');
+  } finally {
+    if (btnSubmit) btnSubmit.disabled = false;
+  }
+};
+
+window.updateEmpMessagePrompt = async function(messageId, currentText) {
+  const newText = prompt('수정할 한줄메시지 내용을 입력하세요:', currentText);
+  if (newText === null || newText.trim() === '' || newText.trim() === currentText) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_employee_message',
+        message_id: messageId,
+        message: newText.trim()
+      })
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      await fetchEmpMessageHistory(currentMsgModalEmpNo);
+    } else {
+      alert(`🚨 수정 실패: ${data.message || '오류'}`);
+    }
+  } catch (err) {
+    console.error('🚨 [메시지 수정 예외]:', err);
+    alert('메시지 수정 중 오류가 발생했습니다.');
+  }
+};
+
+window.deleteEmpMessage = async function(messageId) {
+  if (!confirm('이 한줄메시지를 정말 삭제하시겠습니까? 🗑️')) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'delete_employee_message',
+        message_id: messageId
+      })
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      await fetchEmpMessageHistory(currentMsgModalEmpNo);
+    } else {
+      alert(`🚨 삭제 실패: ${data.message || '오류'}`);
+    }
+  } catch (err) {
+    console.error('🚨 [메시지 삭제 예외]:', err);
+    alert('메시지 삭제 중 오류가 발생했습니다.');
+  }
+};
+
 function saveTrackedEmployees() {
-  localStorage.setItem('tracked_employees', JSON.stringify(trackedEmployees));
   renderTrackedEmployeesList();
   if (rawApiResponse) {
     processAndRenderData(rawApiResponse);
@@ -1716,15 +1937,15 @@ function renderTrackedEmployeesList() {
   container.innerHTML = trackedEmployees.map(emp => `
     <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600 transition-all">
       <div>
-        <span class="font-bold text-slate-900 dark:text-slate-100 text-xs">${emp.empName}</span>
-        <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1">(${emp.empNo})</span>
+        <span class="font-bold text-slate-900 dark:text-slate-100 text-xs">${escapeHtml(emp.empName)}</span>
+        <span class="text-[10px] text-slate-500 dark:text-slate-400 ml-1">(${escapeHtml(emp.empNo)})</span>
       </div>
 
       <div class="flex items-center gap-1.5">
         <span class="font-mono text-[10px] px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 font-semibold">
-          ${emp.cardId}
+          ${escapeHtml(emp.cardId)}
         </span>
-        <button onclick="deleteEmployee('${emp.cardId}')" title="삭제" class="text-slate-400 hover:text-rose-500 p-0.5 transition-colors">
+        <button onclick="deleteEmployee('${escapeHtml(emp.cardId)}')" title="삭제" class="text-slate-400 hover:text-rose-500 p-0.5 transition-colors">
           <i class="fa-regular fa-trash-can text-xs"></i>
         </button>
       </div>
@@ -1732,14 +1953,31 @@ function renderTrackedEmployeesList() {
   `).join('');
 }
 
-window.deleteEmployee = function(cardId) {
-  const emp = trackedEmployees.find(e => e.cardId === cardId);
+window.deleteEmployee = async function(cardId) {
+  const emp = trackedEmployees.find(e => e.cardId === cardId || e.empNo === cardId);
   if (!emp) return;
 
   if (confirm(`'${emp.empName}' (${emp.empNo}) 님을 관리 대상 목록에서 삭제하시겠습니까?`)) {
-    trackedEmployees = trackedEmployees.filter(e => e.cardId !== cardId);
-    if (selectedEmpFilter === cardId) selectedEmpFilter = null;
-    saveTrackedEmployees();
+    try {
+      const res = await fetch('/api/photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_tracked_employee', emp_no: emp.empNo })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        if (selectedEmpFilter === cardId) selectedEmpFilter = null;
+        await loadTrackedEmployees();
+        if (rawApiResponse) {
+          processAndRenderData(rawApiResponse);
+        }
+      } else {
+        alert(`🚨 삭제 실패: ${data.message || '오류'}`);
+      }
+    } catch (err) {
+      console.error('🚨 [우리편 삭제 예외]:', err);
+      alert('삭제 중 오류가 발생했습니다.');
+    }
   }
 };
 
@@ -1884,6 +2122,8 @@ async function fetchAttendance(dateStr) {
 
     if (response.ok && data.success) {
       rawApiResponse = data;
+      await loadTrackedEmployees();
+      await loadAllEmployeeMessages();
       processAndRenderData(data);
     } else {
       handleApiErrorUI(data);
@@ -1909,31 +2149,45 @@ async function fetchAttendance(dateStr) {
   }
 }
 
-// Process raw API data against active tracked employees list
+// Process raw API data against active tracked employees list (Dual Matching by cardId & empNo)
 function processAndRenderData(data) {
   const rawList = data.rawList || (data.rawData && data.rawData.data) || [];
 
-  const empMap = {};
+  const empMapByCard = {};
+  const empMapByEmpNo = {};
+
   trackedEmployees.forEach(emp => {
-    empMap[emp.cardId] = emp;
+    if (emp.cardId) empMapByCard[String(emp.cardId).trim()] = emp;
+    if (emp.empNo) empMapByEmpNo[String(emp.empNo).trim()] = emp;
   });
 
   filteredLogs = [];
   rawList.forEach(item => {
-    if (item && item.cardId && empMap[item.cardId]) {
-      const empInfo = empMap[item.cardId];
-      filteredLogs.push({
-        ...item,
-        empNo: empInfo.empNo,
-        empName: empInfo.empName
-      });
+    if (item) {
+      const cardKey = item.cardId ? String(item.cardId).trim() : '';
+      const empNoKey = item.empNo ? String(item.empNo).trim() : '';
+
+      const empInfo = (cardKey && empMapByCard[cardKey]) || (empNoKey && empMapByEmpNo[empNoKey]);
+      if (empInfo) {
+        filteredLogs.push({
+          ...item,
+          empNo: empInfo.empNo || item.empNo,
+          empName: empInfo.empName || item.empName,
+          cardId: empInfo.cardId || item.cardId
+        });
+      }
     }
   });
 
   filteredLogs.sort((a, b) => (a.evOccurDt || '').localeCompare(b.evOccurDt || ''));
 
   employeeSummaries = trackedEmployees.map(emp => {
-    const empLogs = filteredLogs.filter(log => log.cardId === emp.cardId);
+    const empLogs = filteredLogs.filter(log => {
+      const cardMatch = emp.cardId && log.cardId && String(emp.cardId).trim() === String(log.cardId).trim();
+      const empNoMatch = emp.empNo && log.empNo && String(emp.empNo).trim() === String(log.empNo).trim();
+      return cardMatch || empNoMatch;
+    });
+
     const tagCount = empLogs.length;
     let firstTag = null;
     let lastTag = null;
@@ -1990,7 +2244,9 @@ function renderDashboardStats(data) {
   if (kpiRegisteredEmpCount) kpiRegisteredEmpCount.textContent = totalTracked;
 }
 
-// Render Employee Summary DB Table Structure
+let allEmpMessagesMap = {};
+
+// Render Employee Summary DB Table Structure (6 Columns Layout)
 function renderEmpSummaryDBTable() {
   const tbody = document.getElementById('empSummaryTableBody');
   const clearBtn = document.getElementById('btnClearEmpSummaryFilter');
@@ -2006,7 +2262,7 @@ function renderEmpSummaryDBTable() {
   if (employeeSummaries.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="py-6 text-center text-slate-400">
+        <td colspan="6" class="py-6 text-center text-slate-400">
           등록된 우리 편이 없습니다.
         </td>
       </tr>
@@ -2014,27 +2270,29 @@ function renderEmpSummaryDBTable() {
     return;
   }
 
-  tbody.innerHTML = employeeSummaries.map((emp, index) => {
+  tbody.innerHTML = employeeSummaries.map((emp) => {
     const isAttended = emp.tagCount > 0;
     const isSelected = selectedEmpFilter === emp.cardId;
 
     const firstTime = emp.firstTag ? emp.firstTag.split(' ')[1] : '-';
     const lastTime = emp.lastTag ? emp.lastTag.split(' ')[1] : '-';
 
+    // Get latest single-line message for this employee
+    const msgs = allEmpMessagesMap[emp.empNo] || [];
+    const latestMsg = msgs.length > 0 ? msgs[0].message : '';
+
     return `
       <tr onclick="toggleEmpFilter('${emp.cardId}')" 
         class="theme-table-row cursor-pointer ${isSelected ? 'summary-row-selected font-semibold' : ''}">
-        <td class="py-3 px-4 text-center font-mono text-slate-400 text-xs whitespace-nowrap">${index + 1}</td>
-        <td class="py-3 px-4 whitespace-nowrap">
-          <span class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm whitespace-nowrap">${emp.empName}</span>
+        
+        <!-- Column 1: 이름 -->
+        <td class="py-3 px-[22.5px] whitespace-nowrap">
+          <span class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm whitespace-nowrap">${escapeHtml(emp.empName)}</span>
+          <span class="text-[10px] text-slate-400 font-mono block">${escapeHtml(emp.empNo || '')}</span>
         </td>
-        <td class="py-3 px-4 font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">${emp.empNo}</td>
-        <td class="py-3 px-4 font-mono whitespace-nowrap">
-          <span class="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 font-bold text-xs">
-            ${emp.cardId}
-          </span>
-        </td>
-        <td class="py-3 px-4 text-center whitespace-nowrap">
+
+        <!-- Column 2: 상태 -->
+        <td class="py-3 px-[22.5px] text-center whitespace-nowrap">
           <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${
             isAttended 
               ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' 
@@ -2043,17 +2301,32 @@ function renderEmpSummaryDBTable() {
             ${isAttended ? '<i class="fa-solid fa-check text-[10px]"></i>출근' : '미태깅'}
           </span>
         </td>
-        <td class="py-3 px-4 font-mono whitespace-nowrap ${firstTime !== '-' ? 'text-sky-600 dark:text-sky-400 font-semibold' : 'text-slate-400'}">
+
+        <!-- Column 3: 첫태깅 -->
+        <td class="py-3 px-[22.5px] font-mono whitespace-nowrap ${firstTime !== '-' ? 'text-sky-600 dark:text-sky-400 font-semibold' : 'text-slate-400'}">
           ${firstTime}
         </td>
-        <td class="py-3 px-4 font-mono whitespace-nowrap ${lastTime !== '-' ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-slate-400'}">
+
+        <!-- Column 4: 끝태깅 -->
+        <td class="py-3 px-[22.5px] font-mono whitespace-nowrap ${lastTime !== '-' ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-slate-400'}">
           ${lastTime}
         </td>
-        <td class="py-3 px-4 text-center font-mono font-bold whitespace-nowrap">
-          <span class="px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 text-xs">${emp.tagCount}회</span>
+
+        <!-- Column 5: 태깅횟수 -->
+        <td class="py-3 px-[22.5px] text-center font-mono font-bold whitespace-nowrap">
+          <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 text-xs">${emp.tagCount}회</span>
         </td>
-        <td class="py-3 px-4 text-slate-600 dark:text-slate-300 whitespace-nowrap text-xs">
-          ${emp.primaryDevNm}
+
+        <!-- Column 6: 한줄메시지 + 플러스(+) 버튼 -->
+        <td class="py-3 px-[22.5px] w-full">
+          <div class="flex items-center justify-between gap-4 w-full">
+            <span class="text-xs truncate flex-1 min-w-0 ${latestMsg ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-400 italic text-[11px]'}" title="${escapeHtml(latestMsg || '')}">
+              ${latestMsg ? escapeHtml(latestMsg) : '한줄메시지 없음'}
+            </span>
+            <button onclick="event.stopPropagation(); openEmpMessageModal('${escapeHtml(emp.empNo)}', '${escapeHtml(emp.empName)}')" title="한줄메시지 관리 (+)" class="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-600 dark:text-amber-400 transition-all flex items-center justify-center text-xs flex-shrink-0 cursor-pointer border border-amber-200 dark:border-amber-900/40 active:scale-95">
+              <i class="fa-solid fa-plus text-xs"></i>
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -2335,7 +2608,7 @@ function setupEventListeners() {
     addEmpModal.classList.add('hidden');
   });
 
-  document.getElementById('addEmpForm').addEventListener('submit', (e) => {
+  document.getElementById('addEmpForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const empNo = document.getElementById('inputEmpNo').value.trim();
     const empName = document.getElementById('inputEmpName').value.trim();
@@ -2346,16 +2619,32 @@ function setupEventListeners() {
       return;
     }
 
-    if (trackedEmployees.some(emp => emp.cardId === cardId)) {
-      alert(`이미 등록된 카드 번호입니다: ${cardId}`);
-      return;
+    try {
+      const res = await fetch('/api/photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_tracked_employee',
+          emp_no: empNo,
+          name: empName,
+          card_no: cardId
+        })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        await loadTrackedEmployees();
+        if (rawApiResponse) {
+          processAndRenderData(rawApiResponse);
+        }
+        document.getElementById('addEmpForm').reset();
+        addEmpModal.classList.add('hidden');
+      } else {
+        alert(`🚨 추가 실패: ${data.message || '오류'}`);
+      }
+    } catch (err) {
+      console.error('🚨 [우리편 추가 예외]:', err);
+      alert('추가 중 오류가 발생했습니다.');
     }
-
-    trackedEmployees.push({ empNo, empName, cardId });
-    saveTrackedEmployees();
-
-    document.getElementById('addEmpForm').reset();
-    addEmpModal.classList.add('hidden');
   });
 
   document.getElementById('btnResetEmployees').addEventListener('click', () => {

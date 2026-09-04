@@ -354,9 +354,242 @@ app.post('/api/photos', async (req, res) => {
     }
   }
 
+  // ----------------------------------------------------
+  // TRACKED EMPLOYEES Actions (Supabase DB)
+  // ----------------------------------------------------
+
+  const DEFAULT_TRACKED_EMPLOYEES = [
+    { emp_no: '10257', name: '서보용', card_no: '1814', display_order: 10 },
+    { emp_no: '21606', name: '김민준', card_no: '0548', display_order: 20 },
+    { emp_no: '24608', name: '이우주', card_no: '1247', display_order: 30 },
+    { emp_no: '24602', name: '최수빈', card_no: '1813', display_order: 40 },
+    { emp_no: '24610', name: '황현아', card_no: '1440', display_order: 50 },
+    { emp_no: '24603', name: '한성규', card_no: '0611', display_order: 60 },
+    { emp_no: '25601', name: '박나현', card_no: '0425', display_order: 70 }
+  ];
+
+  if (action === 'get_tracked_employees') {
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: true, employees: DEFAULT_TRACKED_EMPLOYEES });
+    }
+
+    try {
+      const empRes = await axios.get(`${config.url}/rest/v1/tracked_employees?select=*&order=display_order.asc,id.asc`, {
+        headers: {
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`
+        },
+        httpsAgent
+      });
+
+      let employees = empRes.data || [];
+
+      // Auto seed if empty
+      if (employees.length === 0) {
+        try {
+          await axios.post(`${config.url}/rest/v1/tracked_employees`, DEFAULT_TRACKED_EMPLOYEES, {
+            headers: {
+              'apikey': config.key,
+              'Authorization': `Bearer ${config.key}`,
+              'Content-Type': 'application/json'
+            },
+            httpsAgent
+          });
+          employees = DEFAULT_TRACKED_EMPLOYEES;
+        } catch (seedErr) {
+          console.warn('[Seed Tracked Employees Warning]:', seedErr.message);
+          employees = DEFAULT_TRACKED_EMPLOYEES;
+        }
+      }
+
+      return res.status(200).json({ success: true, employees });
+    } catch (err) {
+      console.error('[Get Tracked Employees Error]:', err.message);
+      return res.status(200).json({ success: true, employees: DEFAULT_TRACKED_EMPLOYEES });
+    }
+  }
+
+  if (action === 'add_tracked_employee') {
+    const { emp_no, name, card_no } = req.body;
+    if (!emp_no || !name) {
+      return res.status(400).json({ success: false, message: '사번과 이름이 필요합니다.' });
+    }
+
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: true, message: 'Supabase 미설정 상태' });
+    }
+
+    try {
+      await axios.post(`${config.url}/rest/v1/tracked_employees`, {
+        emp_no: String(emp_no).trim(),
+        name: String(name).trim(),
+        card_no: card_no ? String(card_no).trim() : '',
+        display_order: 100
+      }, {
+        headers: {
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        httpsAgent
+      });
+
+      return res.status(200).json({ success: true, message: '우리 편 임직원이 추가되었습니다.' });
+    } catch (err) {
+      console.error('[Add Tracked Employee Error]:', err.response ? err.response.data : err.message);
+      return res.status(500).json({ success: false, message: '추가 실패', error: err.message });
+    }
+  }
+
+  if (action === 'delete_tracked_employee') {
+    const targetEmpNo = req.body.emp_no || req.body.empNo;
+    if (!targetEmpNo) {
+      return res.status(400).json({ success: false, message: 'emp_no 가 필요합니다.' });
+    }
+
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: true, message: 'Supabase 미설정 상태' });
+    }
+
+    try {
+      await axios.delete(`${config.url}/rest/v1/tracked_employees?emp_no=eq.${targetEmpNo}`, {
+        headers: {
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`
+        },
+        httpsAgent
+      });
+
+      return res.status(200).json({ success: true, message: '삭제 완료' });
+    } catch (err) {
+      console.error('[Delete Tracked Employee Error]:', err.response ? err.response.data : err.message);
+      return res.status(500).json({ success: false, message: '삭제 실패', error: err.message });
+    }
+  }
+
+  // ----------------------------------------------------
+  // EMPLOYEE MESSAGES Actions (Supabase DB)
+  // ----------------------------------------------------
+
+  if (action === 'get_employee_messages') {
+    const targetEmpNo = req.body.emp_no || req.body.empNo;
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: true, messages: [] });
+    }
+
+    try {
+      let endpoint = `${config.url}/rest/v1/employee_messages?select=*&order=created_at.desc`;
+      if (targetEmpNo) {
+        endpoint = `${config.url}/rest/v1/employee_messages?emp_no=eq.${targetEmpNo}&select=*&order=created_at.desc`;
+      }
+
+      const msgRes = await axios.get(endpoint, {
+        headers: {
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`
+        },
+        httpsAgent
+      });
+
+      return res.status(200).json({ success: true, messages: msgRes.data || [] });
+    } catch (err) {
+      console.error('[Get Employee Messages Error]:', err.message);
+      return res.status(200).json({ success: true, messages: [] });
+    }
+  }
+
+  if (action === 'add_employee_message') {
+    const { emp_no, writer, message } = req.body;
+    if (!emp_no || !message) {
+      return res.status(400).json({ success: false, message: 'emp_no와 message가 필요합니다.' });
+    }
+
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: false, message: 'Supabase 미설정 상태' });
+    }
+
+    try {
+      await axios.post(`${config.url}/rest/v1/employee_messages`, {
+        emp_no: String(emp_no).trim(),
+        writer: writer ? String(writer).trim() : '익명 강아지',
+        message: String(message).trim()
+      }, {
+        headers: {
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        httpsAgent
+      });
+
+      return res.status(200).json({ success: true, message: '한줄메시지가 추가되었습니다.' });
+    } catch (err) {
+      console.error('[Add Employee Message Error]:', err.response ? err.response.data : err.message);
+      return res.status(500).json({ success: false, message: '한줄메시지 추가 실패', error: err.message });
+    }
+  }
+
+  if (action === 'update_employee_message') {
+    const { message_id, message } = req.body;
+    if (!message_id || !message) {
+      return res.status(400).json({ success: false, message: 'message_id와 message가 필요합니다.' });
+    }
+
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: true, message: 'Supabase 미설정 상태' });
+    }
+
+    try {
+      await axios.patch(`${config.url}/rest/v1/employee_messages?id=eq.${message_id}`, {
+        message: String(message).trim(),
+        updated_at: new Date().toISOString()
+      }, {
+        headers: {
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        httpsAgent
+      });
+
+      return res.status(200).json({ success: true, message: '한줄메시지가 수정되었습니다.' });
+    } catch (err) {
+      console.error('[Update Employee Message Error]:', err.response ? err.response.data : err.message);
+      return res.status(500).json({ success: false, message: '한줄메시지 수정 실패', error: err.message });
+    }
+  }
+
+  if (action === 'delete_employee_message') {
+    const { message_id } = req.body;
+    if (!message_id) {
+      return res.status(400).json({ success: false, message: 'message_id가 필요합니다.' });
+    }
+
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: true, message: 'Supabase 미설정 상태' });
+    }
+
+    try {
+      await axios.delete(`${config.url}/rest/v1/employee_messages?id=eq.${message_id}`, {
+        headers: {
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`
+        },
+        httpsAgent
+      });
+
+      return res.status(200).json({ success: true, message: '한줄메시지가 삭제되었습니다.' });
+    } catch (err) {
+      console.error('[Delete Employee Message Error]:', err.response ? err.response.data : err.message);
+      return res.status(500).json({ success: false, message: '한줄메시지 삭제 실패', error: err.message });
+    }
+  }
+
   // Reorder Action
   if (action === 'reorder') {
-    const photosList = req.body.photos;
     if (!Array.isArray(photosList)) {
       return res.status(200).json({ success: false, message: 'photos 배열이 누락되었습니다.' });
     }
