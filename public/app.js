@@ -1340,6 +1340,16 @@ function formatCommentDate(isoStr) {
   return `${mm}/${dd} ${hh}:${min}`;
 }
 
+function getLocalDateStr(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -2277,9 +2287,9 @@ function renderEmpSummaryDBTable() {
     const firstTime = emp.firstTag ? emp.firstTag.split(' ')[1] : '-';
     const lastTime = emp.lastTag ? emp.lastTag.split(' ')[1] : '-';
 
-    // Get latest single-line message for this employee
+    // Get latest single-line message for this employee created on selectedDate
     const msgs = allEmpMessagesMap[emp.empNo] || [];
-    const latestObj = msgs.length > 0 ? msgs[0] : null;
+    const latestObj = msgs.find(m => getLocalDateStr(m.created_at) === selectedDate) || null;
     const latestMsg = latestObj ? latestObj.message : '';
     const latestTime = (latestObj && latestObj.created_at) ? formatCommentDate(latestObj.created_at) : '';
 
