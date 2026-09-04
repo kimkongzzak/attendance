@@ -189,7 +189,6 @@ function renderCarousel() {
     track.innerHTML = '<div class="py-8 text-center text-xs text-slate-400 w-full">등록된 사진이 없습니다.</div>';
     if (btnPrev) btnPrev.classList.add('hidden');
     if (btnNext) btnNext.classList.add('hidden');
-    if (dotsContainer) dotsContainer.classList.add('hidden');
     return;
   }
 
@@ -240,7 +239,6 @@ function renderCarousel() {
 
     if (btnPrev) btnPrev.classList.add('hidden');
     if (btnNext) btnNext.classList.add('hidden');
-    if (dotsContainer) dotsContainer.classList.add('hidden');
     return;
   }
 
@@ -255,19 +253,6 @@ function renderCarousel() {
   track.innerHTML = fullList.map((photo, idx) => createSlideHtml(photo, idx, itemPercent)).join('');
 
   updateCarouselTrackTransform(currentCarouselIndex, true);
-
-  if (dotsContainer) {
-    dotsContainer.classList.remove('hidden');
-    dotsContainer.classList.add('flex');
-    const activeIndex = (currentCarouselIndex % total + total) % total;
-    dotsContainer.innerHTML = Array.from({ length: total }).map((_, i) => `
-      <button onclick="setCarouselIndexDirect(${i})" class="h-2 rounded-full transition-all duration-300 ${
-        i === activeIndex
-          ? 'bg-amber-500 w-5' 
-          : 'bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 w-2'
-      }"></button>
-    `).join('');
-  }
 }
 
 function updateCarouselTrackTransform(index, animated = true) {
@@ -301,18 +286,6 @@ window.slideNextCarousel = function() {
   currentCarouselIndex++;
 
   updateCarouselTrackTransform(currentCarouselIndex, true);
-
-  // Update dots
-  const dotsContainer = document.getElementById('carouselDots');
-  if (dotsContainer) {
-    const activeIndex = (currentCarouselIndex % total + total) % total;
-    const dots = dotsContainer.children;
-    for (let i = 0; i < dots.length; i++) {
-      dots[i].className = i === activeIndex
-        ? 'h-2 rounded-full transition-all duration-300 bg-amber-500 w-5'
-        : 'h-2 rounded-full transition-all duration-300 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 w-2';
-    }
-  }
 
   // Seamless Wrap-around to 0 when passing last photo
   if (currentCarouselIndex >= total) {
