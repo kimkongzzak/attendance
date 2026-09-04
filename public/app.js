@@ -2098,7 +2098,8 @@ function renderCalendar() {
 
   const monthNames = ["01월", "02월", "03월", "04월", "05월", "06월", "07월", "08월", "09월", "10월", "11월", "12월"];
   document.getElementById('calendarTitle').textContent = `${year}. ${monthNames[month]}`;
-  document.getElementById('calendarCurrentMonth').textContent = `${year}년 ${monthNames[month]}`;
+  const calCurrMonth = document.getElementById('calendarCurrentMonth');
+  if (calCurrMonth) calCurrMonth.textContent = `${year}년 ${monthNames[month]}`;
 
   const grid = document.getElementById('calendarGrid');
   grid.innerHTML = '';

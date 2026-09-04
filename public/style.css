@@ -191,14 +191,12 @@ html.dark .calendar-day-btn.saturday-day:not(.holiday-day) {
   background-color: transparent !important;
 }
 
-/* Row Selected State for DB Summary Table */
+/* Row Selected State for DB Summary Table (Background-only selection without table layout shifts) */
 html.light .summary-row-selected {
   background-color: #fef3c7 !important;
-  border-left: 4px solid #f59e0b !important;
 }
 html.dark .summary-row-selected {
   background-color: rgba(245, 158, 11, 0.15) !important;
-  border-left: 4px solid #f59e0b !important;
 }
 
 /* Blur Protection for Unauthenticated Sections */
