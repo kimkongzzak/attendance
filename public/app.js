@@ -1228,7 +1228,7 @@ window.submitPhotoComment = async function(event) {
 
 // Live Comments Section Logic
 let allLiveComments = [];
-let liveCommentsVisibleLimit = 10;
+let liveCommentsVisibleLimit = 5;
 
 async function loadLiveComments() {
   const container = document.getElementById('liveCommentsContainer');
@@ -1276,6 +1276,7 @@ function renderLiveCommentsList() {
       </div>
     `;
     if (btnLoadMoreWrapper) btnLoadMoreWrapper.classList.add('hidden');
+    container.classList.remove('max-h-[190px]', 'overflow-y-auto', 'pr-1');
     return;
   }
 
@@ -1292,15 +1293,17 @@ function renderLiveCommentsList() {
         ${escapeHtml(c.comment)}
       </span>
 
-      <button onclick="deletePhotoComment(${c.id}, ${c.photo_id}, event)" title="댓글 삭제" class="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-900/50 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer flex-shrink-0">
-        <i class="fa-solid fa-trash-can text-[10px]"></i>
-      </button>
-
-      <span class="w-16 sm:w-20 text-[10px] text-slate-400 font-mono text-right flex-shrink-0">
+      <span class="w-16 sm:w-20 text-[10px] text-slate-300 dark:text-slate-600 font-mono text-right flex-shrink-0">
         ${formatCommentDate(c.created_at)}
       </span>
     </div>
   `).join('');
+
+  if (visibleList.length > 5) {
+    container.classList.add('max-h-[190px]', 'overflow-y-auto', 'pr-1');
+  } else {
+    container.classList.remove('max-h-[190px]', 'overflow-y-auto', 'pr-1');
+  }
 
   if (btnLoadMoreWrapper) {
     if (liveCommentsVisibleLimit >= activeComments.length) {
@@ -1322,7 +1325,7 @@ window.loadMoreLiveComments = function() {
 window.refreshLiveComments = async function() {
   const icon = document.getElementById('iconRefreshLiveComments');
   if (icon) icon.classList.add('fa-spin');
-  liveCommentsVisibleLimit = 10;
+  liveCommentsVisibleLimit = 5;
   await loadLiveComments();
   setTimeout(() => {
     if (icon) icon.classList.remove('fa-spin');
@@ -1690,6 +1693,9 @@ async function loadTrackedEmployees() {
   renderTrackedEmployeesList();
 }
 
+let rawAllEmpMessagesList = [];
+let liveEmpMessagesVisibleLimit = 5;
+
 async function loadAllEmployeeMessages() {
   try {
     const res = await fetch('/api/photos', {
@@ -1699,6 +1705,7 @@ async function loadAllEmployeeMessages() {
     });
     const data = await res.json();
     if (data && data.success && Array.isArray(data.messages)) {
+      rawAllEmpMessagesList = data.messages;
       allEmpMessagesMap = {};
       data.messages.forEach(m => {
         if (!allEmpMessagesMap[m.emp_no]) {
@@ -1706,11 +1713,86 @@ async function loadAllEmployeeMessages() {
         }
         allEmpMessagesMap[m.emp_no].push(m);
       });
+    } else {
+      rawAllEmpMessagesList = [];
     }
   } catch (err) {
     console.error('🚨 [모든 한줄메시지 로드 에러]:', err);
+    rawAllEmpMessagesList = [];
+  }
+  renderLiveEmpMessagesList();
+}
+
+// Live Employee Single-Line Messages Section Logic
+function renderLiveEmpMessagesList() {
+  const container = document.getElementById('liveEmpMessagesContainer');
+  const btnLoadMoreWrapper = document.getElementById('liveEmpMessagesLoadMoreWrapper');
+  if (!container) return;
+
+  if (rawAllEmpMessagesList.length === 0) {
+    container.innerHTML = `
+      <div class="py-4 text-center text-slate-400 text-xs">
+        💬 등록된 한줄 메시지가 없습니다.
+      </div>
+    `;
+    if (btnLoadMoreWrapper) btnLoadMoreWrapper.classList.add('hidden');
+    container.classList.remove('max-h-[190px]', 'overflow-y-auto', 'pr-1');
+    return;
+  }
+
+  const visibleList = rawAllEmpMessagesList.slice(0, liveEmpMessagesVisibleLimit);
+
+  container.innerHTML = visibleList.map(m => {
+    const emp = trackedEmployees.find(e => e.empNo === m.emp_no);
+    const empName = emp ? emp.empName : (m.writer || '우리편');
+
+    return `
+      <div onclick="openEmpMessageModal('${escapeHtml(m.emp_no)}', '${escapeHtml(empName)}')" class="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/60 shadow-2xs hover:border-amber-400/50 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 transition-all text-xs cursor-pointer group">
+        <span class="w-16 sm:w-20 font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1 text-[11px] truncate flex-shrink-0">
+          <i class="fa-solid fa-paw text-[9px]"></i>
+          <span class="truncate">${escapeHtml(empName)}</span>
+        </span>
+
+        <span class="flex-1 text-xs text-slate-800 dark:text-slate-200 font-medium truncate px-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors" title="${escapeHtml(m.message)}">
+          ${escapeHtml(m.message)}
+        </span>
+
+        <span class="w-16 sm:w-20 text-[10px] text-slate-300 dark:text-slate-600 font-mono text-right flex-shrink-0">
+          ${formatCommentDate(m.created_at)}
+        </span>
+      </div>
+    `;
+  }).join('');
+
+  if (visibleList.length > 5) {
+    container.classList.add('max-h-[190px]', 'overflow-y-auto', 'pr-1');
+  } else {
+    container.classList.remove('max-h-[190px]', 'overflow-y-auto', 'pr-1');
+  }
+
+  if (btnLoadMoreWrapper) {
+    if (liveEmpMessagesVisibleLimit >= rawAllEmpMessagesList.length) {
+      btnLoadMoreWrapper.classList.add('hidden');
+    } else {
+      btnLoadMoreWrapper.classList.remove('hidden');
+    }
   }
 }
+
+window.loadMoreLiveEmpMessages = function() {
+  liveEmpMessagesVisibleLimit += 5;
+  renderLiveEmpMessagesList();
+};
+
+window.refreshLiveEmpMessages = async function() {
+  const icon = document.getElementById('iconRefreshLiveEmpMessages');
+  if (icon) icon.classList.add('fa-spin');
+  liveEmpMessagesVisibleLimit = 5;
+  await loadAllEmployeeMessages();
+  setTimeout(() => {
+    if (icon) icon.classList.remove('fa-spin');
+  }, 400);
+};
 
 // Single-Line Employee Message Modal Management
 let currentMsgModalEmpNo = '';
