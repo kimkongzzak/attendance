@@ -2279,7 +2279,9 @@ function renderEmpSummaryDBTable() {
 
     // Get latest single-line message for this employee
     const msgs = allEmpMessagesMap[emp.empNo] || [];
-    const latestMsg = msgs.length > 0 ? msgs[0].message : '';
+    const latestObj = msgs.length > 0 ? msgs[0] : null;
+    const latestMsg = latestObj ? latestObj.message : '';
+    const latestTime = (latestObj && latestObj.created_at) ? formatCommentDate(latestObj.created_at) : '';
 
     return `
       <tr onclick="toggleEmpFilter('${emp.cardId}')" 
@@ -2320,8 +2322,8 @@ function renderEmpSummaryDBTable() {
         <!-- Column 6: 한줄메시지 + 플러스(+) 버튼 -->
         <td class="py-3 px-[22.5px] w-full">
           <div class="flex items-center justify-between gap-4 w-full">
-            <span class="text-xs truncate flex-1 min-w-0 ${latestMsg ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-400 italic text-[11px]'}" title="${escapeHtml(latestMsg || '')}">
-              ${latestMsg ? escapeHtml(latestMsg) : '한줄메시지 없음'}
+            <span class="text-xs truncate flex-1 min-w-0 ${latestMsg ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-400 italic text-[11px]'}" title="${escapeHtml(latestMsg ? `${latestMsg} (${latestTime})` : '')}">
+              ${latestMsg ? `${escapeHtml(latestMsg)} <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono font-normal ml-1 flex-shrink-0">(${latestTime})</span>` : '한줄메시지 없음'}
             </span>
             <button onclick="event.stopPropagation(); openEmpMessageModal('${escapeHtml(emp.empNo)}', '${escapeHtml(emp.empName)}')" title="한줄메시지 관리 (+)" class="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-600 dark:text-amber-400 transition-all flex items-center justify-center text-xs flex-shrink-0 cursor-pointer border border-amber-200 dark:border-amber-900/40 active:scale-95">
               <i class="fa-solid fa-plus text-xs"></i>
