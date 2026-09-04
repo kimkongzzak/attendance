@@ -283,3 +283,19 @@ header button * {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
+
+/* Precise Vertical Alignment for FontAwesome Icons inside Buttons & Cards */
+button i,
+a i,
+.theme-card i,
+.fa,
+.fas,
+.far,
+.fa-solid,
+.fa-regular {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+}
