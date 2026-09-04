@@ -2286,13 +2286,13 @@ function renderEmpSummaryDBTable() {
         class="theme-table-row cursor-pointer ${isSelected ? 'summary-row-selected font-semibold' : ''}">
         
         <!-- Column 1: 이름 -->
-        <td class="py-3 px-[22.5px] whitespace-nowrap">
+        <td class="py-3 px-[26.5px] whitespace-nowrap">
           <span class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm whitespace-nowrap">${escapeHtml(emp.empName)}</span>
           <span class="text-[10px] text-slate-400 font-mono block">${escapeHtml(emp.empNo || '')}</span>
         </td>
 
         <!-- Column 2: 상태 -->
-        <td class="py-3 px-[22.5px] text-center whitespace-nowrap">
+        <td class="py-3 px-[26.5px] text-center whitespace-nowrap">
           <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${
             isAttended 
               ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' 
@@ -2303,17 +2303,17 @@ function renderEmpSummaryDBTable() {
         </td>
 
         <!-- Column 3: 첫태깅 -->
-        <td class="py-3 px-[22.5px] font-mono whitespace-nowrap ${firstTime !== '-' ? 'text-sky-600 dark:text-sky-400 font-semibold' : 'text-slate-400'}">
+        <td class="py-3 px-[26.5px] font-mono whitespace-nowrap ${firstTime !== '-' ? 'text-sky-600 dark:text-sky-400 font-semibold' : 'text-slate-400'}">
           ${firstTime}
         </td>
 
         <!-- Column 4: 끝태깅 -->
-        <td class="py-3 px-[22.5px] font-mono whitespace-nowrap ${lastTime !== '-' ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-slate-400'}">
+        <td class="py-3 px-[26.5px] font-mono whitespace-nowrap ${lastTime !== '-' ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-slate-400'}">
           ${lastTime}
         </td>
 
         <!-- Column 5: 태깅횟수 -->
-        <td class="py-3 px-[22.5px] text-center font-mono font-bold whitespace-nowrap">
+        <td class="py-3 px-[26.5px] text-center font-mono font-bold whitespace-nowrap">
           <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 text-xs">${emp.tagCount}회</span>
         </td>
 
