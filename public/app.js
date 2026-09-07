@@ -1871,14 +1871,26 @@ async function fetchEmpMessageHistory(empNo) {
 
           <!-- Like & Dislike Reactions in Message History Modal -->
           <div class="flex items-center gap-1.5 mt-1.5">
-            <button onclick="likeEmpMessage(${msg.id}, '${escapeHtml(empNo)}')" title="좋아요 (따봉)" class="h-6 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 transition-all flex items-center justify-center text-xs font-bold cursor-pointer active:scale-95 gap-1">
-              <span class="text-sm leading-none">👍</span>
-              <span>${msg.like_count || 0}</span>
-            </button>
-            <button onclick="dislikeEmpMessage(${msg.id}, '${escapeHtml(empNo)}')" title="싫어요 (역따봉)" class="h-6 px-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 transition-all flex items-center justify-center text-xs font-bold cursor-pointer active:scale-95 gap-1">
-              <span class="text-sm leading-none">👎</span>
-              <span>${msg.dislike_count || 0}</span>
-            </button>
+            ${(() => {
+              const lCnt = msg.like_count || 0;
+              const dCnt = msg.dislike_count || 0;
+              const lClass = lCnt > 0 
+                ? 'bg-emerald-100 dark:bg-emerald-500/20 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-extrabold' 
+                : 'bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 text-emerald-600/50 dark:text-emerald-400/50 font-medium';
+              const dClass = dCnt > 0 
+                ? 'bg-rose-100 dark:bg-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-500/30 text-rose-800 dark:text-rose-300 font-extrabold' 
+                : 'bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-900/40 text-rose-600/50 dark:text-rose-400/50 font-medium';
+              return `
+                <button onclick="likeEmpMessage(${msg.id}, '${escapeHtml(empNo)}')" title="좋아요 (따봉)" class="h-6 px-2 rounded-lg ${lClass} transition-all flex items-center justify-center text-xs cursor-pointer active:scale-95 gap-1">
+                  <span class="text-sm leading-none ${lCnt === 0 ? 'opacity-40' : 'opacity-100'}">👍</span>
+                  <span>${lCnt}</span>
+                </button>
+                <button onclick="dislikeEmpMessage(${msg.id}, '${escapeHtml(empNo)}')" title="싫어요 (역따봉)" class="h-6 px-2 rounded-lg ${dClass} transition-all flex items-center justify-center text-xs cursor-pointer active:scale-95 gap-1">
+                  <span class="text-sm leading-none ${dCnt === 0 ? 'opacity-40' : 'opacity-100'}">👎</span>
+                  <span>${dCnt}</span>
+                </button>
+              `;
+            })()}
           </div>
         </div>
 
@@ -2477,18 +2489,28 @@ function renderEmpSummaryDBTable() {
             <span class="text-xs truncate flex-1 min-w-0 ${latestMsg ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-300 dark:text-slate-600 italic text-[11px]'}" title="${escapeHtml(latestMsg ? `${latestMsg} (${latestTime})` : '')}">
               ${latestMsg ? `${escapeHtml(latestMsg)} <span class="text-[10px] text-slate-300 dark:text-slate-600 font-mono font-normal ml-1 flex-shrink-0">(${latestTime})</span>` : '오늘의 한줄 메시지 없음'}
             </span>
-            ${latestObj ? `
-              <div class="flex items-center gap-1.5 flex-shrink-0" onclick="event.stopPropagation()">
-                <button onclick="likeEmpMessage(${latestObj.id}, '${escapeHtml(emp.empNo)}')" title="좋아요 (따봉)" class="h-6 px-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 transition-all flex items-center justify-center text-xs font-bold cursor-pointer active:scale-95 gap-1">
-                  <span class="text-sm leading-none">👍</span>
-                  <span>${latestObj.like_count || 0}</span>
-                </button>
-                <button onclick="dislikeEmpMessage(${latestObj.id}, '${escapeHtml(emp.empNo)}')" title="싫어요 (역따봉)" class="h-6 px-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 transition-all flex items-center justify-center text-xs font-bold cursor-pointer active:scale-95 gap-1">
-                  <span class="text-sm leading-none">👎</span>
-                  <span>${latestObj.dislike_count || 0}</span>
-                </button>
-              </div>
-            ` : ''}
+            ${latestObj ? (() => {
+              const lCnt = latestObj.like_count || 0;
+              const dCnt = latestObj.dislike_count || 0;
+              const lClass = lCnt > 0 
+                ? 'bg-emerald-100 dark:bg-emerald-500/20 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-extrabold' 
+                : 'bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/40 text-emerald-600/50 dark:text-emerald-400/50 font-medium';
+              const dClass = dCnt > 0 
+                ? 'bg-rose-100 dark:bg-rose-500/20 hover:bg-rose-200 dark:hover:bg-rose-500/30 text-rose-800 dark:text-rose-300 font-extrabold' 
+                : 'bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-900/40 text-rose-600/50 dark:text-rose-400/50 font-medium';
+              return `
+                <div class="flex items-center gap-1.5 flex-shrink-0" onclick="event.stopPropagation()">
+                  <button onclick="likeEmpMessage(${latestObj.id}, '${escapeHtml(emp.empNo)}')" title="좋아요 (따봉)" class="h-6 px-1.5 rounded-lg ${lClass} transition-all flex items-center justify-center text-xs cursor-pointer active:scale-95 gap-1">
+                    <span class="text-sm leading-none ${lCnt === 0 ? 'opacity-40' : 'opacity-100'}">👍</span>
+                    <span>${lCnt}</span>
+                  </button>
+                  <button onclick="dislikeEmpMessage(${latestObj.id}, '${escapeHtml(emp.empNo)}')" title="싫어요 (역따봉)" class="h-6 px-1.5 rounded-lg ${dClass} transition-all flex items-center justify-center text-xs cursor-pointer active:scale-95 gap-1">
+                    <span class="text-sm leading-none ${dCnt === 0 ? 'opacity-40' : 'opacity-100'}">👎</span>
+                    <span>${dCnt}</span>
+                  </button>
+                </div>
+              `;
+            })() : ''}
             <button onclick="event.stopPropagation(); openEmpMessageModal('${escapeHtml(emp.empNo)}', '${escapeHtml(emp.empName)}')" title="한줄메시지 관리 (+)" class="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-600 dark:text-amber-400 transition-all flex items-center justify-center text-xs flex-shrink-0 cursor-pointer border border-amber-200 dark:border-amber-900/40 active:scale-95">
               <i class="fa-solid fa-plus text-xs"></i>
             </button>
