@@ -253,6 +253,33 @@ function renderCarousel() {
   track.innerHTML = fullList.map((photo, idx) => createSlideHtml(photo, idx, itemPercent)).join('');
 
   updateCarouselTrackTransform(currentCarouselIndex, true);
+  updateCarouselScrollbar();
+}
+
+function updateCarouselScrollbar() {
+  const track = document.getElementById('carouselScrollbarTrack');
+  const thumb = document.getElementById('carouselScrollbarThumb');
+  if (!track || !thumb) return;
+
+  const total = carouselPhotos.length;
+  const isMobile = window.innerWidth < 640;
+  const visibleCount = isMobile ? 2 : 4;
+
+  if (total <= visibleCount) {
+    track.classList.add('hidden');
+    return;
+  }
+
+  track.classList.remove('hidden');
+
+  const activeIndex = (currentCarouselIndex % total + total) % total;
+  const thumbWidthPercent = Math.max(8, Math.min(100, (visibleCount / total) * 100));
+  const maxLeft = 100 - thumbWidthPercent;
+  const maxIndex = total - 1;
+  const leftPercent = maxIndex > 0 ? (activeIndex / maxIndex) * maxLeft : 0;
+
+  thumb.style.width = `${thumbWidthPercent}%`;
+  thumb.style.left = `${leftPercent}%`;
 }
 
 function updateCarouselTrackTransform(index, animated = true) {
@@ -286,6 +313,7 @@ window.slideNextCarousel = function() {
   currentCarouselIndex++;
 
   updateCarouselTrackTransform(currentCarouselIndex, true);
+  updateCarouselScrollbar();
 
   // Seamless Wrap-around to 0 when passing last photo
   if (currentCarouselIndex >= total) {
@@ -2491,8 +2519,67 @@ function renderDetailedTable() {
   }).join('');
 }
 
+// Setup Interactive Custom Scrollbar for Carousel (Click & Drag Sliding Handle)
+function setupCarouselScrollbarSeeking() {
+  const track = document.getElementById('carouselScrollbarTrack');
+  const thumb = document.getElementById('carouselScrollbarThumb');
+  if (!track || !thumb) return;
+
+  let isDragging = false;
+
+  const seek = (e) => {
+    const total = carouselPhotos.length;
+    if (total <= 1) return;
+
+    const rect = track.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const thumbWidthPx = thumb.getBoundingClientRect().width;
+    const availableWidthPx = rect.width - thumbWidthPx;
+
+    let offsetX = clientX - rect.left - (thumbWidthPx / 2);
+    offsetX = Math.max(0, Math.min(offsetX, availableWidthPx));
+
+    const ratio = availableWidthPx > 0 ? offsetX / availableWidthPx : 0;
+    const targetIndex = Math.min(total - 1, Math.round(ratio * (total - 1)));
+
+    if (currentCarouselIndex !== targetIndex) {
+      currentCarouselIndex = targetIndex;
+      updateCarouselTrackTransform(currentCarouselIndex, true);
+      updateCarouselScrollbar();
+    }
+  };
+
+  track.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    seek(e);
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (isDragging) seek(e);
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDragging) isDragging = false;
+  });
+
+  track.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    seek(e);
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (isDragging) seek(e);
+  }, { passive: true });
+
+  window.addEventListener('touchend', () => {
+    if (isDragging) isDragging = false;
+  });
+}
+
 // Event Listeners Setup
 function setupEventListeners() {
+  setupCarouselScrollbarSeeking();
+
   // Auth Lock / Unlock Button Handler (Left of Theme Toggle)
   document.getElementById('btnAuthToggle').addEventListener('click', () => {
     if (isAuthenticated) {

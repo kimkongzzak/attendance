@@ -297,6 +297,12 @@
             </button>
             <button id="btnNextCarousel" onclick="slideNextCarousel()" title="다음 사진" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-900/75 hover:bg-amber-500 text-white flex items-center justify-center transition-all shadow-lg backdrop-blur-md hidden z-10">
               <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+          </div>
+
+          <!-- Carousel Custom Scrollbar Track & Moving Thumb -->
+          <div id="carouselScrollbarTrack" class="w-full bg-slate-200 dark:bg-slate-700/60 h-2.5 rounded-full relative overflow-hidden mt-3 hidden cursor-pointer select-none touch-none" title="드래그 또는 클릭하여 원하는 위치로 사진 이동">
+            <div id="carouselScrollbarThumb" class="h-full bg-amber-500 rounded-full transition-all duration-200 absolute left-0 top-0" style="width: 20%; left: 0%;"></div>
           </div>
         </div>
 
