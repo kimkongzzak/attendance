@@ -1865,9 +1865,21 @@ async function fetchEmpMessageHistory(empNo) {
               ${formatCommentDate(msg.created_at)}
             </span>
           </div>
-          <p class="text-xs text-slate-800 dark:text-slate-200 font-medium break-words leading-relaxed">
+          <p class="text-xs text-slate-800 dark:text-slate-200 font-medium break-words leading-relaxed mb-1.5">
             ${escapeHtml(msg.message)}
           </p>
+
+          <!-- Like & Dislike Reactions in Message History Modal -->
+          <div class="flex items-center gap-1.5 mt-1.5">
+            <button onclick="likeEmpMessage(${msg.id}, '${escapeHtml(empNo)}')" title="좋아요 (따봉)" class="h-6 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 transition-all flex items-center justify-center text-xs font-bold cursor-pointer active:scale-95 gap-1">
+              <span class="text-sm leading-none">👍</span>
+              <span>${msg.like_count || 0}</span>
+            </button>
+            <button onclick="dislikeEmpMessage(${msg.id}, '${escapeHtml(empNo)}')" title="싫어요 (역따봉)" class="h-6 px-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 transition-all flex items-center justify-center text-xs font-bold cursor-pointer active:scale-95 gap-1">
+              <span class="text-sm leading-none">👎</span>
+              <span>${msg.dislike_count || 0}</span>
+            </button>
+          </div>
         </div>
 
         <div class="flex items-center gap-1 flex-shrink-0 self-start pt-0.5">
@@ -1984,6 +1996,52 @@ window.deleteEmpMessage = async function(messageId) {
   } catch (err) {
     console.error('🚨 [메시지 삭제 예외]:', err);
     alert('메시지 삭제 중 오류가 발생했습니다.');
+  }
+};
+
+window.likeEmpMessage = async function(messageId, empNo) {
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'like_employee_message',
+        message_id: messageId
+      })
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      if (empNo) {
+        await fetchEmpMessageHistory(empNo);
+      }
+      await loadAllEmployeeMessages();
+      renderEmpSummaryDBTable();
+    }
+  } catch (err) {
+    console.error('🚨 [한줄메시지 좋아요 실패]:', err);
+  }
+};
+
+window.dislikeEmpMessage = async function(messageId, empNo) {
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'dislike_employee_message',
+        message_id: messageId
+      })
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      if (empNo) {
+        await fetchEmpMessageHistory(empNo);
+      }
+      await loadAllEmployeeMessages();
+      renderEmpSummaryDBTable();
+    }
+  } catch (err) {
+    console.error('🚨 [한줄메시지 싫어요 실패]:', err);
   }
 };
 
@@ -2382,13 +2440,13 @@ function renderEmpSummaryDBTable() {
         class="theme-table-row cursor-pointer ${isSelected ? 'summary-row-selected font-semibold' : ''}">
         
         <!-- Column 1: 이름 -->
-        <td class="py-3 px-[26.5px] whitespace-nowrap">
+        <td class="py-3 px-[25px] whitespace-nowrap">
           <span class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm whitespace-nowrap">${escapeHtml(emp.empName)}</span>
           <span class="text-[10px] text-slate-400 font-mono block">${escapeHtml(emp.empNo || '')}</span>
         </td>
 
         <!-- Column 2: 상태 -->
-        <td class="py-3 px-[26.5px] text-center whitespace-nowrap">
+        <td class="py-3 px-[25px] text-center whitespace-nowrap">
           <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${
             isAttended 
               ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' 
@@ -2399,26 +2457,38 @@ function renderEmpSummaryDBTable() {
         </td>
 
         <!-- Column 3: 첫태깅 -->
-        <td class="py-3 px-[26.5px] font-mono whitespace-nowrap ${firstTime !== '-' ? 'text-sky-600 dark:text-sky-400 font-semibold' : 'text-slate-400'}">
+        <td class="py-3 px-[25px] font-mono whitespace-nowrap ${firstTime !== '-' ? 'text-sky-600 dark:text-sky-400 font-semibold' : 'text-slate-400'}">
           ${firstTime}
         </td>
 
         <!-- Column 4: 끝태깅 -->
-        <td class="py-3 px-[26.5px] font-mono whitespace-nowrap ${lastTime !== '-' ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-slate-400'}">
+        <td class="py-3 px-[25px] font-mono whitespace-nowrap ${lastTime !== '-' ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-slate-400'}">
           ${lastTime}
         </td>
 
         <!-- Column 5: 태깅횟수 -->
-        <td class="py-3 px-[26.5px] text-center font-mono font-bold whitespace-nowrap">
+        <td class="py-3 px-[25px] text-center font-mono font-bold whitespace-nowrap">
           <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 text-xs">${emp.tagCount}회</span>
         </td>
 
-        <!-- Column 6: 오늘의 한줄 메시지 + 플러스(+) 버튼 -->
+        <!-- Column 6: 오늘의 한줄 메시지 + 따봉/역따봉 + 플러스(+) 버튼 -->
         <td class="py-3 px-[22.5px] w-full">
-          <div class="flex items-center justify-between gap-4 w-full">
+          <div class="flex items-center justify-between gap-2.5 w-full">
             <span class="text-xs truncate flex-1 min-w-0 ${latestMsg ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-300 dark:text-slate-600 italic text-[11px]'}" title="${escapeHtml(latestMsg ? `${latestMsg} (${latestTime})` : '')}">
               ${latestMsg ? `${escapeHtml(latestMsg)} <span class="text-[10px] text-slate-300 dark:text-slate-600 font-mono font-normal ml-1 flex-shrink-0">(${latestTime})</span>` : '오늘의 한줄 메시지 없음'}
             </span>
+            ${latestObj ? `
+              <div class="flex items-center gap-1.5 flex-shrink-0" onclick="event.stopPropagation()">
+                <button onclick="likeEmpMessage(${latestObj.id}, '${escapeHtml(emp.empNo)}')" title="좋아요 (따봉)" class="h-6 px-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 transition-all flex items-center justify-center text-xs font-bold cursor-pointer active:scale-95 gap-1">
+                  <span class="text-sm leading-none">👍</span>
+                  <span>${latestObj.like_count || 0}</span>
+                </button>
+                <button onclick="dislikeEmpMessage(${latestObj.id}, '${escapeHtml(emp.empNo)}')" title="싫어요 (역따봉)" class="h-6 px-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 transition-all flex items-center justify-center text-xs font-bold cursor-pointer active:scale-95 gap-1">
+                  <span class="text-sm leading-none">👎</span>
+                  <span>${latestObj.dislike_count || 0}</span>
+                </button>
+              </div>
+            ` : ''}
             <button onclick="event.stopPropagation(); openEmpMessageModal('${escapeHtml(emp.empNo)}', '${escapeHtml(emp.empName)}')" title="한줄메시지 관리 (+)" class="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-600 dark:text-amber-400 transition-all flex items-center justify-center text-xs flex-shrink-0 cursor-pointer border border-amber-200 dark:border-amber-900/40 active:scale-95">
               <i class="fa-solid fa-plus text-xs"></i>
             </button>

@@ -588,6 +588,130 @@ app.post('/api/photos', async (req, res) => {
     }
   }
 
+  if (action === 'like_employee_message') {
+    const { message_id } = req.body;
+    if (!message_id) {
+      return res.status(400).json({ success: false, message: 'message_id가 필요합니다.' });
+    }
+
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: true, message: 'Supabase 미설정 상태' });
+    }
+
+    try {
+      let newLikes = null;
+      try {
+        const rpcRes = await axios.post(`${config.url}/rest/v1/rpc/increment_emp_message_likes`, {
+          p_message_id: message_id,
+          p_count: 1
+        }, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Content-Type': 'application/json'
+          },
+          httpsAgent
+        });
+        if (typeof rpcRes.data === 'number') {
+          newLikes = rpcRes.data;
+        }
+      } catch (rpcErr) {
+        // Fallback
+      }
+
+      if (newLikes === null) {
+        const getRes = await axios.get(`${config.url}/rest/v1/employee_messages?id=eq.${message_id}&select=like_count`, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`
+          },
+          httpsAgent
+        });
+        const curr = (getRes.data && getRes.data[0] && typeof getRes.data[0].like_count === 'number') ? getRes.data[0].like_count : 0;
+        newLikes = curr + 1;
+
+        await axios.patch(`${config.url}/rest/v1/employee_messages?id=eq.${message_id}`, {
+          like_count: newLikes,
+          updated_at: new Date().toISOString()
+        }, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Content-Type': 'application/json'
+          },
+          httpsAgent
+        });
+      }
+
+      return res.status(200).json({ success: true, like_count: newLikes });
+    } catch (err) {
+      console.error('[Like Employee Message Error]:', err.response ? err.response.data : err.message);
+      return res.status(500).json({ success: false, message: '좋아요 실패', error: err.message });
+    }
+  }
+
+  if (action === 'dislike_employee_message') {
+    const { message_id } = req.body;
+    if (!message_id) {
+      return res.status(400).json({ success: false, message: 'message_id가 필요합니다.' });
+    }
+
+    if (!config.isConfigured) {
+      return res.status(200).json({ success: true, message: 'Supabase 미설정 상태' });
+    }
+
+    try {
+      let newDislikes = null;
+      try {
+        const rpcRes = await axios.post(`${config.url}/rest/v1/rpc/increment_emp_message_dislikes`, {
+          p_message_id: message_id,
+          p_count: 1
+        }, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Content-Type': 'application/json'
+          },
+          httpsAgent
+        });
+        if (typeof rpcRes.data === 'number') {
+          newDislikes = rpcRes.data;
+        }
+      } catch (rpcErr) {
+        // Fallback
+      }
+
+      if (newDislikes === null) {
+        const getRes = await axios.get(`${config.url}/rest/v1/employee_messages?id=eq.${message_id}&select=dislike_count`, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`
+          },
+          httpsAgent
+        });
+        const curr = (getRes.data && getRes.data[0] && typeof getRes.data[0].dislike_count === 'number') ? getRes.data[0].dislike_count : 0;
+        newDislikes = curr + 1;
+
+        await axios.patch(`${config.url}/rest/v1/employee_messages?id=eq.${message_id}`, {
+          dislike_count: newDislikes,
+          updated_at: new Date().toISOString()
+        }, {
+          headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`,
+            'Content-Type': 'application/json'
+          },
+          httpsAgent
+        });
+      }
+
+      return res.status(200).json({ success: true, dislike_count: newDislikes });
+    } catch (err) {
+      console.error('[Dislike Employee Message Error]:', err.response ? err.response.data : err.message);
+      return res.status(500).json({ success: false, message: '싫어요 실패', error: err.message });
+    }
+  }
+
   // Reorder Action
   if (action === 'reorder') {
     if (!Array.isArray(photosList)) {
