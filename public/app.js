@@ -2908,3 +2908,94 @@ function setupEventListeners() {
   // Check auth session every 1 minute for automatic 2-hour expiration
   setInterval(checkAuthState, 60000);
 }
+
+// Floating Action Button: iMessage "Echo" Style Emoji Burst Effect
+const FIRE_ECHO_EMOJIS = ['🗣️', '❌', '🤐', '🤷‍♂️', '🖕', '🔪', '🩸', '🤤', '🔥', '💀', '🤬', '🪓', '💥', '⚰️', '⚡️', '😵‍💫', '💣', '🪦', '🔙', '🚷', '👊', '🦵'];
+
+let fireClickCount = 0;
+let nextSuperBurstTarget = Math.floor(Math.random() * 5) + 11; // Trigger around 13 clicks (11~15)
+
+window.triggerFireEchoBurst = function(event) {
+  const btn = document.getElementById('btnFloatingFire');
+  fireClickCount++;
+
+  const isSuperBurst = fireClickCount >= nextSuperBurstTarget;
+
+  if (isSuperBurst) {
+    fireClickCount = 0;
+    nextSuperBurstTarget = Math.floor(Math.random() * 5) + 11; // reset next trigger (~13 clicks)
+
+    if (btn) {
+      btn.classList.add('scale-150', 'rotate-45', 'shadow-rose-500/80');
+      setTimeout(() => btn.classList.remove('scale-150', 'rotate-45', 'shadow-rose-500/80'), 400);
+    }
+  } else if (btn) {
+    btn.classList.add('scale-125', 'rotate-12');
+    setTimeout(() => btn.classList.remove('scale-125', 'rotate-12'), 250);
+  }
+
+  let originX = window.innerWidth - 64;
+  let originY = window.innerHeight - 64;
+
+  if (btn) {
+    const rect = btn.getBoundingClientRect();
+    originX = rect.left + rect.width / 2;
+    originY = rect.top + rect.height / 2;
+  } else if (event) {
+    originX = event.clientX;
+    originY = event.clientY;
+  }
+
+  // Normal burst: 32 particles around button (~12cm radius: 60px ~ 400px)
+  // Super burst: 100 particles scattered across full screen!
+  const particleCount = isSuperBurst ? 100 : 32;
+
+  for (let i = 0; i < particleCount; i++) {
+    const emoji = FIRE_ECHO_EMOJIS[Math.floor(Math.random() * FIRE_ECHO_EMOJIS.length)];
+    const el = document.createElement('span');
+    el.className = 'emoji-echo-particle';
+    el.textContent = emoji;
+
+    let startX = originX;
+    let startY = originY;
+    let radius = 60 + Math.random() * 340; // ~12cm radius bounds around button
+    let dur = 1.1 + Math.random() * 0.4;
+    let delay = Math.random() * 160;
+    let fontSize = 20 + Math.random() * 24;
+    let scale = 1.0 + Math.random() * 0.6;
+
+    if (isSuperBurst) {
+      // Full screen spread origin & wider radius
+      startX = Math.random() * window.innerWidth;
+      startY = Math.random() * window.innerHeight;
+      radius = 100 + Math.random() * 450;
+      fontSize = 24 + Math.random() * 36; // 24px - 60px jumbo emojis!
+      scale = 1.2 + Math.random() * 0.8;
+      dur = 1.4 + Math.random() * 0.8; // 1.4s - 2.2s
+      delay = Math.random() * 450; // 0ms - 450ms mega wave
+    }
+
+    const angle = Math.random() * Math.PI * 2;
+    const tx = Math.cos(angle) * radius;
+    const ty = Math.sin(angle) * radius;
+    const rot = -60 + Math.random() * 120;
+
+    el.style.left = `${startX - fontSize / 2}px`;
+    el.style.top = `${startY - fontSize / 2}px`;
+    el.style.fontSize = `${fontSize}px`;
+    el.style.setProperty('--tx', `${tx}px`);
+    el.style.setProperty('--ty', `${ty}px`);
+    el.style.setProperty('--scale', `${scale}`);
+    el.style.setProperty('--rot', `${rot}deg`);
+    el.style.setProperty('--dur', `${dur}s`);
+    el.style.setProperty('--delay', `${delay}ms`);
+
+    document.body.appendChild(el);
+
+    setTimeout(() => {
+      if (el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    }, (dur * 1000) + delay + 100);
+  }
+};
