@@ -828,6 +828,43 @@ module.exports = async (req, res) => {
     }
 
     try {
+      let savedDbValue = photo_data;
+      let fullUrl = photo_data;
+
+      // If photo_data is Base64, upload binary buffer to Supabase Storage 'gallery' bucket first
+      if (photo_data.startsWith('data:image/')) {
+        try {
+          const matches = photo_data.match(/^data:(image\/([a-zA-Z0-9+.-]+));base64,(.+)$/);
+          if (matches) {
+            const mimeType = matches[1];
+            let ext = matches[2].toLowerCase();
+            if (ext === 'jpeg') ext = 'jpg';
+            const base64Str = matches[3];
+            const buffer = Buffer.from(base64Str, 'base64');
+            const uniqueName = `photo_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
+
+            const uploadUrl = `${config.url}/storage/v1/object/gallery/${uniqueName}`;
+            await axios.post(uploadUrl, buffer, {
+              headers: {
+                'apikey': config.key,
+                'Authorization': `Bearer ${config.key}`,
+                'Content-Type': mimeType,
+                'x-upsert': 'true'
+              },
+              httpsAgent
+            });
+
+            savedDbValue = uniqueName;
+            fullUrl = `${config.url}/storage/v1/object/public/gallery/${uniqueName}`;
+            console.log('✅ [Supabase Insert Photo -> Storage Success] Filename:', savedDbValue);
+          }
+        } catch (storageErr) {
+          console.error('⚠️ [Supabase Insert Photo -> Storage Error]:', storageErr.response ? storageErr.response.data : storageErr.message);
+        }
+      } else if (!photo_data.startsWith('http://') && !photo_data.startsWith('https://') && !photo_data.startsWith('/')) {
+        fullUrl = `${config.url}/storage/v1/object/public/gallery/${photo_data}`;
+      }
+
       let newDisplayOrder = 10000;
       try {
         const maxRes = await axios.get(`${config.url}/rest/v1/gallery_photos?select=display_order&order=display_order.desc&limit=1`, {
@@ -846,7 +883,7 @@ module.exports = async (req, res) => {
 
       const supabaseRes = await axios.post(`${config.url}/rest/v1/gallery_photos`, {
         photo_name: photo_name || '포토 갤러리 이미지',
-        photo_data: photo_data,
+        photo_data: savedDbValue,
         display_order: display_order || newDisplayOrder
       }, {
         headers: {
@@ -858,12 +895,18 @@ module.exports = async (req, res) => {
         httpsAgent
       });
 
-      const newPhoto = supabaseRes.data && supabaseRes.data[0] ? supabaseRes.data[0] : supabaseRes.data;
+      const rawPhoto = supabaseRes.data && supabaseRes.data[0] ? supabaseRes.data[0] : supabaseRes.data;
+      const responsePhoto = {
+        ...rawPhoto,
+        url: fullUrl,
+        photo_data: fullUrl
+      };
+
       return res.status(200).json({
         success: true,
         isConfigured: true,
         message: `Supabase DB 사진 저장 성공 (display_order: ${newDisplayOrder})`,
-        photo: newPhoto
+        photo: responsePhoto
       });
     } catch (err) {
       console.error('[Vercel Supabase Insert Photo Error]', err.response ? err.response.data : err.message);
