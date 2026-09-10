@@ -44,10 +44,24 @@ module.exports = async (req, res) => {
         },
         httpsAgent
       });
+      const rawPhotos = supabaseRes.data || [];
+      const storageBaseUrl = `${config.url}/storage/v1/object/public/gallery`;
+      const photos = rawPhotos.map(p => {
+        let url = p.photo_data || '';
+        if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+          url = `${storageBaseUrl}/${url}`;
+        }
+        return {
+          ...p,
+          url: url,
+          photo_data: url
+        };
+      });
+
       return res.status(200).json({
         success: true,
         isConfigured: true,
-        photos: supabaseRes.data || []
+        photos: photos
       });
     } catch (err) {
       const status = err.response ? err.response.status : 'ERR';

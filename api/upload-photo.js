@@ -31,6 +31,7 @@ module.exports = async (req, res) => {
 
     const config = getSupabaseConfig();
     let finalUrl = imageBase64;
+    let savedDbValue = imageBase64;
 
     // 1. Upload binary file to Supabase Storage 'gallery' bucket if configured
     if (config.isConfigured && imageBase64.startsWith('data:image/')) {
@@ -56,19 +57,20 @@ module.exports = async (req, res) => {
           });
 
           finalUrl = `${config.url}/storage/v1/object/public/gallery/${uniqueName}`;
-          console.log('✅ [Storage Upload Success] Public URL:', finalUrl);
+          savedDbValue = uniqueName;
+          console.log('✅ [Storage Upload Success] Saved Filename:', uniqueName, 'Public URL:', finalUrl);
         }
       } catch (storageErr) {
         console.error('⚠️ [Storage Upload Fallback] Storage Upload Error:', storageErr.response ? storageErr.response.data : storageErr.message);
       }
     }
 
-    // 2. Insert into gallery_photos DB table storing only the public Storage CDN URL
+    // 2. Insert into gallery_photos DB table storing only the relative filename
     if (config.isConfigured) {
       try {
         const insertRes = await axios.post(`${config.url}/rest/v1/gallery_photos`, {
           photo_name: photoName || fileName || '포토 갤러리 이미지',
-          photo_data: finalUrl,
+          photo_data: savedDbValue,
           display_order: 0
         }, {
           headers: {
