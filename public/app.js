@@ -1344,6 +1344,15 @@ function formatCommentDate(isoStr) {
   return `${mm}/${dd} ${hh}:${min}`;
 }
 
+function formatTimeOnly(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return '';
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${min}`;
+}
+
 function getLocalDateStr(isoStr) {
   if (!isoStr) return '';
   const d = new Date(isoStr);
@@ -2445,7 +2454,7 @@ function renderEmpSummaryDBTable() {
     const msgs = allEmpMessagesMap[emp.empNo] || [];
     const latestObj = msgs.find(m => getLocalDateStr(m.created_at) === selectedDate) || null;
     const latestMsg = latestObj ? latestObj.message : '';
-    const latestTime = (latestObj && latestObj.created_at) ? formatCommentDate(latestObj.created_at) : '';
+    const latestTime = (latestObj && latestObj.created_at) ? formatTimeOnly(latestObj.created_at) : '';
 
     return `
       <tr onclick="toggleEmpFilter('${emp.cardId}')" 
@@ -2486,8 +2495,8 @@ function renderEmpSummaryDBTable() {
         <!-- Column 6: 오늘의 한줄 메시지 + 따봉/역따봉 + 플러스(+) 버튼 -->
         <td class="py-3 px-[22.5px] w-full">
           <div class="flex items-center justify-between gap-2.5 w-full">
-            <span class="text-xs truncate flex-1 min-w-0 ${latestMsg ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-300 dark:text-slate-600 italic text-[11px]'}" title="${escapeHtml(latestMsg || '')}">
-              ${latestMsg ? escapeHtml(latestMsg) : '오늘의 한줄 메시지 없음'}
+            <span class="text-xs truncate flex-1 min-w-0 ${latestMsg ? 'text-slate-800 dark:text-slate-200 font-medium' : 'text-slate-300 dark:text-slate-600 italic text-[11px]'}" title="${escapeHtml(latestMsg ? `${latestMsg} (${latestTime})` : '')}">
+              ${latestMsg ? `${escapeHtml(latestMsg)} <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono font-normal ml-1 flex-shrink-0">(${latestTime})</span>` : '오늘의 한줄 메시지 없음'}
             </span>
             ${latestObj ? (() => {
               const lCnt = latestObj.like_count || 0;
